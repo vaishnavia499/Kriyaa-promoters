@@ -1,0 +1,6 @@
+{
+  "name": "Kriyaa Promoters - Golden City Admin",
+  "description": "Mobile-first real estate admin panel and interactive plot management portal for Kriyaa Promoters and Golden City field agents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
