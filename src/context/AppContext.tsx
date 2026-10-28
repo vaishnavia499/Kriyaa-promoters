@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { Property, Lead, BusinessSettings, PropertyStatus, LeadStatus, Project, NavigationTab, PublicTab, AppMode } from '../types';
 import { INITIAL_PROPERTIES, INITIAL_LEADS, INITIAL_SETTINGS, INITIAL_PROJECTS } from '../data/initialData';
+import * as api from '../services/apiClient';
 
 export type { NavigationTab, PublicTab, AppMode };
 
@@ -55,6 +56,16 @@ interface AppContextType {
   // Project CRUD
   saveProject: (project: Omit<Project, 'id'> & { id?: string }) => void;
   deleteProject: (projectId: string) => void;
+
+  // Publishing & Plot Management Studio
+  publishProject: (projectId: string) => Promise<boolean>;
+  unpublishProject: (projectId: string) => Promise<boolean>;
+  uploadProjectLayout: (projectId: string, imageUrl: string, pdfUrl?: string) => Promise<boolean>;
+  importSpreadsheetPlots: (projectId: string, rows: any[]) => Promise<{ success: boolean; importedCount?: number; validationErrors?: string[] }>;
+  savePlotBoundaries: (projectId: string, boundaries: any[]) => Promise<boolean>;
+  refreshBackendData: () => Promise<void>;
+  isLoadingBackend: boolean;
+  backendError: string | null;
 
   // Raw & Filtered Data
   properties: Property[]; // Raw all properties
@@ -282,6 +293,108 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3200);
+  };
+
+  // Backend Communication State
+  const [isLoadingBackend, setIsLoadingBackend] = useState<boolean>(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
+
+  const refreshBackendData = useCallback(async () => {
+    setIsLoadingBackend(true);
+    setBackendError(null);
+    try {
+      if (currentMode === 'admin' && isAuthenticated) {
+        const adminProjs = await api.fetchAdminProjects();
+        if (adminProjs && adminProjs.length > 0) {
+          setProjects(adminProjs);
+          const targetProjId = selectedProjectId !== 'all' ? selectedProjectId : adminProjs[0]?.id;
+          if (targetProjId) {
+            const adminPlots = await api.fetchAdminProjectPlots(targetProjId);
+            setProperties(adminPlots);
+          }
+        }
+      } else {
+        // Public website: ONLY published projects
+        const publicProjs = await api.fetchPublishedProjects();
+        if (publicProjs && publicProjs.length > 0) {
+          setProjects(publicProjs);
+          const targetProjId = selectedProjectId !== 'all' ? selectedProjectId : publicProjs[0]?.id;
+          if (targetProjId) {
+            const { plots } = await api.fetchPublishedProjectPlots(targetProjId);
+            setProperties(plots);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[AppContext] API fetch fallback to local store:', err);
+      setBackendError(err.message || 'Connecting to backend data...');
+    } finally {
+      setIsLoadingBackend(false);
+    }
+  }, [currentMode, isAuthenticated, selectedProjectId]);
+
+  useEffect(() => {
+    refreshBackendData();
+  }, [refreshBackendData]);
+
+  const publishProject = async (projectId: string): Promise<boolean> => {
+    try {
+      const res = await api.publishProject(projectId);
+      showToast(res.message, 'success');
+      await refreshBackendData();
+      return true;
+    } catch (err: any) {
+      showToast(err.message || 'Failed to publish layout', 'error');
+      return false;
+    }
+  };
+
+  const unpublishProject = async (projectId: string): Promise<boolean> => {
+    try {
+      const res = await api.unpublishProject(projectId);
+      showToast(res.message, 'info');
+      await refreshBackendData();
+      return true;
+    } catch (err: any) {
+      showToast(err.message || 'Failed to unpublish layout', 'error');
+      return false;
+    }
+  };
+
+  const uploadProjectLayout = async (projectId: string, imageUrl: string, pdfUrl?: string): Promise<boolean> => {
+    try {
+      await api.uploadProjectLayoutImage(projectId, imageUrl, pdfUrl);
+      showToast('New plot layout blueprint uploaded successfully', 'success');
+      await refreshBackendData();
+      return true;
+    } catch (err: any) {
+      showToast(err.message || 'Failed to upload layout image', 'error');
+      return false;
+    }
+  };
+
+  const importSpreadsheetPlots = async (projectId: string, rows: any[]) => {
+    try {
+      const res = await api.importSpreadsheetPlots(projectId, rows);
+      showToast(res.message, 'success');
+      await refreshBackendData();
+      return res;
+    } catch (err: any) {
+      showToast(err.message || 'Spreadsheet import failed', 'error');
+      throw err;
+    }
+  };
+
+  const savePlotBoundaries = async (projectId: string, boundaries: any[]): Promise<boolean> => {
+    try {
+      const res = await api.savePlotBoundaries(projectId, boundaries);
+      showToast(`Boundary coordinates for ${res.updatedCount} plots saved to database`, 'success');
+      await refreshBackendData();
+      return true;
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save boundary coordinates', 'error');
+      return false;
+    }
   };
 
   // Sync with LocalStorage
@@ -660,6 +773,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resetToMasterData,
         toasts,
         showToast,
+        publishProject,
+        unpublishProject,
+        uploadProjectLayout,
+        importSpreadsheetPlots,
+        savePlotBoundaries,
+        refreshBackendData,
+        isLoadingBackend,
+        backendError,
         stats,
       }}
     >

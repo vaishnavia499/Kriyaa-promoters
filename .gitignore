@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Auto-generated runtime database (auto-seeds on first server start)
+data/database.json

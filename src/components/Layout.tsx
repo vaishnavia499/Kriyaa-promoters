@@ -30,8 +30,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'projects', label: 'Projects', icon: MapPin },
     { id: 'properties', label: 'Properties', icon: Building2 },
+    { id: 'hotspot-simulator', label: 'Plot Management', icon: Sparkles },
     { id: 'leads', label: 'Leads', icon: Users },
-    { id: 'hotspot-simulator', label: 'Hotspot Simulator', icon: Sparkles },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 

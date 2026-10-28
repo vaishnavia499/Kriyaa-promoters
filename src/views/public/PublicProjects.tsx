@@ -51,6 +51,9 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
     isPlotSaved,
     settings,
     showToast,
+    isLoadingBackend,
+    backendError,
+    refreshBackendData,
   } = useApp();
 
   // Full-screen project view state (null = catalog list, string = specific project full screen)
@@ -64,8 +67,8 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
   // Tab 3: 'table' (Plot Inventory Table & Filter)
   const [projectSubTab, setProjectSubTab] = useState<'layout' | 'overview' | 'table'>('layout');
 
-  // Master Layout Display Mode (blueprint | topdown | isometric | satellite)
-  const [displayMode, setDisplayMode] = useState<LayoutDisplayMode>('blueprint');
+  // Master Layout Display Mode (topdown | blueprint | isometric | satellite)
+  const [displayMode, setDisplayMode] = useState<LayoutDisplayMode>('topdown');
 
   // Currently inspected plot in the project view
   const [inspectedPlotId, setInspectedPlotId] = useState<string | null>(null);
@@ -80,9 +83,11 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
   const [projectLocationFilter, setProjectLocationFilter] = useState<string>('All Locations');
   const [projectStatusFilter, setProjectStatusFilter] = useState<string>('All');
 
-  // Filtered projects for the Catalog View
+  // Filtered published projects for the Catalog View
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
+      // Must be published on public website
+      if (project.isPublished === false) return false;
       // 1. Search Query
       if (projectSearchQuery.trim()) {
         const q = projectSearchQuery.toLowerCase().trim();
@@ -702,6 +707,31 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Loading Indicator */}
+        {isLoadingBackend && (
+          <div className="flex items-center justify-center gap-2 p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 text-[#15803D] dark:text-emerald-400 text-xs font-bold max-w-md mx-auto">
+            <span className="w-2 h-2 rounded-full bg-[#15803D] animate-ping" />
+            <span>Syncing published plot data with promoter backend...</span>
+          </div>
+        )}
+
+        {/* Backend Error Alert with Retry */}
+        {backendError && (
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row items-center justify-between gap-3 max-w-xl mx-auto shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>Offline cache active. Connect to promoter backend for latest plot releases.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => refreshBackendData()}
+              className="px-3 py-1.5 rounded-lg bg-amber-200 dark:bg-amber-900/60 text-amber-950 dark:text-amber-100 font-bold text-xs hover:brightness-105 cursor-pointer whitespace-nowrap"
+            >
+              Retry Sync
+            </button>
+          </div>
+        )}
 
         {/* ─────────────────────────────────────────────────────────────
             3. PROJECT CARDS GRID (Filtered)

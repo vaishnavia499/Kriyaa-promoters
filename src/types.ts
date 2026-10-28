@@ -13,10 +13,21 @@ export interface Project {
   dtcpNumber: string; // e.g. "DTCP No. 182/2023"
   reraNumber?: string; // e.g. "TN/RERA/0428/2024"
   masterPlanImage: string; // Master plan layout thumbnail or blueprint
+  layoutImageUrl?: string; // Dedicated uploaded layout image/PDF
+  layoutPdfUrl?: string;
+  layoutVersion?: number; // Tracks replacement layouts
   description: string;
   status: 'Active' | 'Upcoming' | 'Completed';
+  isPublished?: boolean; // True when published to live website
   totalAreaExtent?: string; // e.g. "12.5 Acres"
   launchYear?: number;
+  geoCoordinates?: { lat: number; lng: number };
+  totalPlots?: number;
+  availablePlots?: number;
+  reservedPlots?: number;
+  soldPlots?: number;
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 export interface Property {
@@ -41,6 +52,17 @@ export interface Property {
   googleMapsUrl: string;
   images: string[];
   description: string;
+  boundary?: {
+    x: number; // percentage (0 - 100)
+    y: number; // percentage (0 - 100)
+    width: number; // percentage
+    height: number; // percentage
+    points?: [number, number][]; // optional polygon vertices for irregular boundary
+  };
+  layoutVersion?: number;
+  geoCoordinates?: { lat: number; lng: number };
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 export type LeadPreferredAction = 'Site Visit' | 'WhatsApp' | 'Callback';

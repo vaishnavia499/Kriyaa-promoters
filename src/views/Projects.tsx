@@ -29,6 +29,7 @@ export const Projects: React.FC = () => {
     projects,
     selectedProjectId: headerContextProjectId,
     setSelectedProjectId: setHeaderContextProjectId,
+    setActiveTab,
     openAddProjectModal,
     openEditProjectModal,
     deleteProject,
@@ -1262,6 +1263,19 @@ export const Projects: React.FC = () => {
                   >
                     <LayoutGrid className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span className="hidden sm:inline">Layout Grid</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeaderContextProjectId(proj.id);
+                      setActiveTab('hotspot-simulator');
+                    }}
+                    className="min-h-[42px] px-3 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Open Plot Management Studio"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span className="hidden sm:inline">Plot Studio</span>
                   </button>
 
                   <button
