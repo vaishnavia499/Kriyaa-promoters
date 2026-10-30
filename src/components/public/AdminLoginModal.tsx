@@ -55,7 +55,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         {/* Header */}
         <div className="bg-[#113B24] p-5 text-white flex items-center justify-between border-b border-[#1E5D32]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0B2516] border border-[#EAB308]/60 p-1.5 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-white border border-[#EAB308]/60 p-1 flex items-center justify-center overflow-hidden">
               <KriyaaLogo className="w-full h-full" />
             </div>
             <div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { KriyaaLogo } from '../KriyaaLogo';
 import { PublicTab } from '../../types';
 
 interface PublicFooterProps {
@@ -12,9 +13,9 @@ export const PublicFooter: React.FC<PublicFooterProps> = () => {
   return (
     <footer className="w-full bg-[#06180D] border-t border-emerald-950/80 text-slate-200 select-none pt-10 pb-16 px-4">
       <div className="max-w-md mx-auto flex flex-col items-center">
-        {/* 1. Golden Squircle Logo */}
-        <div className="w-16 h-16 rounded-2xl bg-[#03130A] border-2 border-[#EAB308] flex items-center justify-center text-[#EAB308] font-black text-3xl shadow-xl shadow-black/40">
-          K
+        {/* 1. Official Kriyaa Triangle Logo */}
+        <div className="w-16 h-16 rounded-2xl bg-white border-2 border-[#EAB308] p-2 flex items-center justify-center shadow-xl shadow-black/40 overflow-hidden">
+          <KriyaaLogo className="w-full h-full object-contain" />
         </div>
 
         {/* 2. Brand Name & Slogan */}

@@ -1,4 +1,5 @@
 import { Project, Property } from '../types';
+import * as supabaseData from './supabaseDataService';
 
 const API_BASE = '/api';
 
@@ -18,24 +19,46 @@ function getAuthHeader(): Record<string, string> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PUBLIC API (Published records only)
+// PUBLIC API (Live Supabase database integration)
 // ─────────────────────────────────────────────────────────────
 export async function fetchPublishedProjects(): Promise<Project[]> {
-  const res = await fetch(`${API_BASE}/public/projects`);
-  if (!res.ok) {
-    throw new Error(`Failed to load published projects: ${res.statusText}`);
+  try {
+    const projs = await supabaseData.getSupabaseProjects();
+    if (projs && projs.length > 0) return projs;
+  } catch (err) {
+    console.warn('[apiClient] Supabase fetch fallback to local API:', err);
   }
-  const data = await res.json();
-  return data.projects || [];
+
+  // Fallback to local server if Supabase query encountered issues
+  const res = await fetch(`${API_BASE}/public/projects`).catch(() => null);
+  if (res && res.ok) {
+    const data = await res.json();
+    return data.projects || [];
+  }
+  return supabaseData.getSupabaseProjects();
 }
 
 export async function fetchPublishedProjectPlots(projectId: string): Promise<{ project: Project; plots: Property[] }> {
-  const res = await fetch(`${API_BASE}/public/projects/${encodeURIComponent(projectId)}/plots`);
-  if (!res.ok) {
-    throw new Error(`Failed to load project plots: ${res.statusText}`);
+  try {
+    const plots = await supabaseData.getSupabaseProjectPlots(projectId);
+    const projects = await supabaseData.getSupabaseProjects();
+    const project = projects.find((p) => p.id === projectId) || projects[0];
+    if (project && plots) {
+      return { project, plots };
+    }
+  } catch (err) {
+    console.warn('[apiClient] Supabase plots fetch fallback to local API:', err);
   }
-  return await res.json();
+
+  const res = await fetch(`${API_BASE}/public/projects/${encodeURIComponent(projectId)}/plots`).catch(() => null);
+  if (res && res.ok) {
+    return await res.json();
+  }
+  const plots = await supabaseData.getSupabaseProjectPlots(projectId);
+  const projects = await supabaseData.getSupabaseProjects();
+  return { project: projects.find((p) => p.id === projectId) || projects[0], plots };
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // ADMIN API (Draft + Published management, requires token)
@@ -80,6 +103,7 @@ export async function updateAdminProject(projectId: string, updates: Partial<Pro
 }
 
 export async function publishProject(projectId: string): Promise<{ success: boolean; message: string; project: Project }> {
+  supabaseData.setProjectPublicationInSupabase(projectId, true).catch(() => {});
   const res = await fetch(`${API_BASE}/admin/projects/${encodeURIComponent(projectId)}/publish`, {
     method: 'POST',
     headers: getAuthHeader(),
@@ -92,6 +116,7 @@ export async function publishProject(projectId: string): Promise<{ success: bool
 }
 
 export async function unpublishProject(projectId: string): Promise<{ success: boolean; message: string; project: Project }> {
+  supabaseData.setProjectPublicationInSupabase(projectId, false).catch(() => {});
   const res = await fetch(`${API_BASE}/admin/projects/${encodeURIComponent(projectId)}/unpublish`, {
     method: 'POST',
     headers: getAuthHeader(),
@@ -130,6 +155,7 @@ export async function uploadProjectLayoutImage(
   layoutImageUrl: string,
   layoutPdfUrl?: string
 ): Promise<{ success: boolean; layoutVersion: number; project: Project }> {
+  supabaseData.uploadLayoutImageToSupabase(projectId, layoutImageUrl, layoutPdfUrl).catch(() => {});
   const res = await fetch(`${API_BASE}/admin/projects/${encodeURIComponent(projectId)}/layout-image`, {
     method: 'POST',
     headers: getAuthHeader(),
@@ -162,6 +188,7 @@ export async function savePlotBoundaries(
   projectId: string,
   boundaries: { plotId?: string; plotNumber?: string; x: number; y: number; width: number; height: number; points?: [number, number][] }[]
 ): Promise<{ success: boolean; updatedCount: number }> {
+  supabaseData.savePlotBoundariesToSupabase(projectId, boundaries).catch(() => {});
   const res = await fetch(`${API_BASE}/admin/projects/${encodeURIComponent(projectId)}/boundaries`, {
     method: 'POST',
     headers: getAuthHeader(),

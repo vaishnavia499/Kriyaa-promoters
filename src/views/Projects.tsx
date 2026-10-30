@@ -32,6 +32,8 @@ export const Projects: React.FC = () => {
     setActiveTab,
     openAddProjectModal,
     openEditProjectModal,
+    openNewProjectWizard,
+    openVisualizeProject,
     deleteProject,
     properties,
     updatePropertyStatus,
@@ -1100,7 +1102,7 @@ export const Projects: React.FC = () => {
         {/* Register New Project Button (Positioned on the Right, clean without extra +) */}
         <button
           type="button"
-          onClick={openAddProjectModal}
+          onClick={openNewProjectWizard}
           className="min-h-[42px] px-4 py-2 bg-[#15803D] hover:bg-[#166534] active:scale-[0.98] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm border border-[#CA8A04]/40 hover:border-[#EAB308] transition-all cursor-pointer shrink-0 whitespace-nowrap self-stretch sm:self-auto"
         >
           <Plus className="w-4 h-4 text-[#EAB308]" />
@@ -1268,8 +1270,7 @@ export const Projects: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setHeaderContextProjectId(proj.id);
-                      setActiveTab('hotspot-simulator');
+                      openVisualizeProject(proj.id);
                     }}
                     className="min-h-[42px] px-3 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     title="Open Plot Management Studio"

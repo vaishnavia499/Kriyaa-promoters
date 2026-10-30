@@ -195,14 +195,14 @@ export const PlotInspectorCard: React.FC<PlotInspectorCardProps> = ({
 
       {/* Primary Action Buttons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-        {/* Button 1: Book Free Site Visit Cab */}
+        {/* Button 1: Book Free Site Visit */}
         <button
           type="button"
           onClick={() => onBookCab(plot)}
           className="min-h-[48px] px-6 py-3 rounded-2xl bg-[#113B24] hover:bg-[#15803D] text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-lg border border-[#EAB308]/40 transition-all cursor-pointer active:scale-95"
         >
-          <Car className="w-4 h-4 text-[#EAB308]" />
-          <span>Book Free Site Visit Cab for Plot #{plot.plotNumber}</span>
+          <Sparkles className="w-4 h-4 text-[#EAB308]" />
+          <span>Book Free Site Visit for Plot #{plot.plotNumber}</span>
         </button>
 
         {/* Button 2: Direct WhatsApp Inquiry to MD Rajesh RTR */}

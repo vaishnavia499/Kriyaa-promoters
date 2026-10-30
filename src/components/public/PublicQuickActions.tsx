@@ -37,14 +37,14 @@ export const PublicQuickActions: React.FC<PublicQuickActionsProps> = ({
     {
       id: 'msg-1',
       sender: 'assistant',
-      text: 'Vanakkam! 🙏 I am your **Kriyaa Assistant**. Ask me anything about Golden City, Chidambaram Plots, Pondy Heights, DTCP sanctions, bank loans, or free site visit cabs.',
+      text: 'Vanakkam! 🙏 I am your **Kriyaa Assistant**. Ask me anything about Golden City, Chidambaram Plots, Pondy Heights, DTCP sanctions, bank loans, or booking a free site visit.',
       timestamp: 'Just now',
       suggestedPrompts: [
         'Golden City details',
         'Plot pricing & sizes',
         '80% Bank Loan info',
         'DTCP & Patta details',
-        'Book Free Site Visit Cab',
+        'Book Free Site Visit',
       ],
     },
   ]);
@@ -71,7 +71,7 @@ export const PublicQuickActions: React.FC<PublicQuickActionsProps> = ({
       if (match) {
         return {
           response: entry.response,
-          prompts: ['Show more plots', 'Talk to Rajesh RTR on WhatsApp', 'Book Free Cab'],
+          prompts: ['Show more plots', 'Talk to Rajesh RTR on WhatsApp', 'Book Free Site Visit'],
         };
       }
     }
@@ -116,7 +116,7 @@ export const PublicQuickActions: React.FC<PublicQuickActionsProps> = ({
   };
 
   const handlePromptClick = (prompt: string) => {
-    if (prompt === 'Book Free Cab' || prompt === 'Book Free Site Visit Cab') {
+    if (prompt === 'Book Free Site Visit' || prompt === 'Book Free Cab' || prompt === 'Book Free Site Visit Cab') {
       setIsBotOpen(false);
       onOpenCabBooking();
       return;
@@ -264,9 +264,9 @@ export const PublicQuickActions: React.FC<PublicQuickActionsProps> = ({
               <button
                 type="button"
                 onClick={onOpenCabBooking}
-                className="text-[10.5px] bg-[#15803D] hover:bg-[#113B24] text-white px-2 py-0.5 rounded-md font-bold cursor-pointer transition-colors"
+                className="text-[10.5px] bg-[#15803D] hover:bg-[#113B24] text-white px-2.5 py-0.5 rounded-md font-bold cursor-pointer transition-colors"
               >
-                Free Cab
+                Site Visit
               </button>
             </div>
 

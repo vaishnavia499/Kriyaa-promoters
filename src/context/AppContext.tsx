@@ -3,6 +3,8 @@ import confetti from 'canvas-confetti';
 import { Property, Lead, BusinessSettings, PropertyStatus, LeadStatus, Project, NavigationTab, PublicTab, AppMode } from '../types';
 import { INITIAL_PROPERTIES, INITIAL_LEADS, INITIAL_SETTINGS, INITIAL_PROJECTS } from '../data/initialData';
 import * as api from '../services/apiClient';
+import { submitSupabaseLead, updatePropertyStatusInSupabase } from '../services/supabaseDataService';
+import { supabase } from '../lib/supabase';
 
 export type { NavigationTab, PublicTab, AppMode };
 
@@ -46,6 +48,18 @@ interface AppContextType {
   openAddProjectModal: () => void;
   openEditProjectModal: (project: Project) => void;
   closeProjectModal: () => void;
+
+  // New Project Wizard (Plot Management 3-step registration)
+  newProjectWizardActive: boolean;
+  openNewProjectWizard: () => void;
+  closeNewProjectWizard: () => void;
+
+  // Plot Management Visualization mode & target project
+  plotManagementMode: 'list' | 'visualize';
+  setPlotManagementMode: (mode: 'list' | 'visualize') => void;
+  visualizeProjectId: string;
+  openVisualizeProject: (projectId: string) => void;
+  closeVisualizeProject: () => void;
 
   viewingProject: Project | null;
   isProjectDetailOpen: boolean;
@@ -121,13 +135,13 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  PROJECTS: 'kriyaa_projects_v4',
-  SELECTED_PROJECT: 'kriyaa_selected_project_v4',
-  PROPERTIES: 'kriyaa_properties_v4',
-  LEADS: 'kriyaa_leads_v4',
-  SETTINGS: 'kriyaa_settings_v4',
-  AUTH_TOKEN: 'kriyaa_auth_token_v4',
-  SAVED_PLOTS: 'kriyaa_saved_plots_v1',
+  PROJECTS: 'kriyaa_projects_v5',
+  SELECTED_PROJECT: 'kriyaa_selected_project_v5',
+  PROPERTIES: 'kriyaa_properties_v5',
+  LEADS: 'kriyaa_leads_v5',
+  SETTINGS: 'kriyaa_settings_v5',
+  AUTH_TOKEN: 'kriyaa_auth_token_v5',
+  SAVED_PLOTS: 'kriyaa_saved_plots_v2',
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -247,6 +261,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsProjectModalOpen(false);
   };
 
+  // New Project Wizard state — triggers 3-step wizard in Plot Management
+  const [newProjectWizardActive, setNewProjectWizardActive] = useState(false);
+
+  // Plot Management Visualization mode & target project
+  const [plotManagementMode, setPlotManagementModeState] = useState<'list' | 'visualize'>('list');
+  const [visualizeProjectId, setVisualizeProjectId] = useState<string>('proj-golden-city');
+
+  const setPlotManagementMode = (mode: 'list' | 'visualize') => {
+    setPlotManagementModeState(mode);
+  };
+
+  const openVisualizeProject = (projectId: string) => {
+    setVisualizeProjectId(projectId);
+    setSelectedProjectId(projectId);
+    setPlotManagementModeState('visualize');
+    setActiveTab('hotspot-simulator');
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'plot-management');
+      url.searchParams.set('mode', 'visualize');
+      url.searchParams.set('projectId', projectId);
+      window.history.pushState({}, '', url.toString());
+    } catch {}
+  };
+
+  const closeVisualizeProject = () => {
+    setPlotManagementModeState('list');
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'plot-management');
+      url.searchParams.delete('mode');
+      url.searchParams.delete('projectId');
+      window.history.pushState({}, '', url.toString());
+    } catch {}
+  };
+
+  const openNewProjectWizard = () => {
+    setActiveTab('hotspot-simulator');
+    setPlotManagementModeState('list');
+    setNewProjectWizardActive(true);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'plot-management');
+      url.searchParams.set('mode', 'register');
+      window.history.pushState({}, '', url.toString());
+    } catch {}
+  };
+
+  const closeNewProjectWizard = () => {
+    setNewProjectWizardActive(false);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('mode');
+      window.history.pushState({}, '', url.toString());
+    } catch {}
+  };
+
+  // Synchronize on mount from URL query params
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      const modeParam = params.get('mode');
+      const projParam = params.get('projectId');
+
+      if (tabParam === 'plot-management' || tabParam === 'hotspot-simulator') {
+        setActiveTab('hotspot-simulator');
+        if (modeParam === 'visualize' && projParam) {
+          setPlotManagementModeState('visualize');
+          setVisualizeProjectId(projParam);
+          setSelectedProjectId(projParam);
+        } else if (modeParam === 'register') {
+          setNewProjectWizardActive(true);
+        }
+      } else if (tabParam === 'properties') {
+        setActiveTab('properties');
+      } else if (tabParam === 'projects') {
+        setActiveTab('projects');
+      }
+    } catch {}
+  }, []);
+
   const [properties, setProperties] = useState<Property[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PROPERTIES);
@@ -335,6 +431,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     refreshBackendData();
+  }, [refreshBackendData]);
+
+  // Real-time subscription to Supabase 'properties' table for live status updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime_properties')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'properties' },
+        (payload) => {
+          console.log('[Supabase Realtime] Property updated in database:', payload);
+          refreshBackendData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [refreshBackendData]);
 
   const publishProject = async (projectId: string): Promise<boolean> => {
@@ -518,7 +633,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (defaultProjectId) {
       setSelectedProjectId(defaultProjectId);
     }
-    setIsPropertyModalOpen(true);
+    setActiveTab('hotspot-simulator');
+    setIsPropertyModalOpen(false);
   };
 
   const openEditPropertyModal = (property: Property) => {
@@ -530,11 +646,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsPropertyModalOpen(false);
   };
 
-  const updatePropertyStatus = (propertyId: string, status: PropertyStatus) => {
+  const updatePropertyStatus = async (propertyId: string, status: PropertyStatus) => {
+    const targetProp = properties.find((p) => p.id === propertyId);
+
+    // 1. Optimistic UI update
     setProperties((prev) =>
       prev.map((p) => (p.id === propertyId ? { ...p, status } : p))
     );
-    showToast(`Property status updated to "${status}"`, 'success');
+    showToast(`Plot #${targetProp?.plotNumber || ''} status updated to "${status}"`, 'success');
+
+    // 2. Persist to local server database
+    try {
+      await api.updateAdminPlot(propertyId, { status });
+    } catch (e) {
+      console.warn('[AppContext] Local server plot update note:', e);
+    }
+
+    // 3. Persist to Supabase database
+    try {
+      await updatePropertyStatusInSupabase(
+        propertyId,
+        status,
+        targetProp?.plotNumber,
+        targetProp?.projectId
+      );
+    } catch (e) {
+      console.warn('[AppContext] Supabase plot status update note:', e);
+    }
+
+    // 4. Trigger background refresh to sync metrics & live counts
+    refreshBackendData().catch(() => {});
   };
 
   const saveProperty = (propertyData: Omit<Property, 'id'> & { id?: string }) => {
@@ -638,6 +779,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
       setLeads((prev) => [newLead, ...prev]);
       showToast(`New inquiry for "${leadData.customerName}" registered`, 'success');
+
+      // Sync lead directly to Supabase
+      submitSupabaseLead({
+        customerName: leadData.customerName,
+        phone: leadData.phone,
+        email: leadData.email,
+        propertyOfInterest: leadData.propertyOfInterest,
+        preferredAction: leadData.preferredAction,
+        notes: leadData.notes,
+        budgetLakhs: leadData.budgetLakhs,
+        projectId: targetProjectId,
+      }).catch((e) => console.warn('[AppContext] Supabase lead sync note:', e));
     }
     closeLeadDrawer();
   };
@@ -737,6 +890,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         openAddProjectModal,
         openEditProjectModal,
         closeProjectModal,
+        newProjectWizardActive,
+        openNewProjectWizard,
+        closeNewProjectWizard,
+        plotManagementMode,
+        setPlotManagementMode,
+        visualizeProjectId,
+        openVisualizeProject,
+        closeVisualizeProject,
         viewingProject,
         isProjectDetailOpen,
         projectDetailInitialMode,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, Car, CheckCircle2, ShieldCheck, Phone, User, MapPin, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { X, Car, CheckCircle2, ShieldCheck, Phone, User, MapPin, Calendar, Clock, ArrowRight, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Property } from '../../types';
 
@@ -51,13 +51,13 @@ export const FreeCabModal: React.FC<FreeCabModalProps> = ({
         preferredAction: 'Site Visit',
         status: 'New',
         notes: [
-          `Free Cab Booking: Pickup in ${pickupCity} (${pickupAddress}) on ${visitDate}. Doorstep AC cab. Target inspection: ${targetDescription}`,
+          `Free Site Visit Booking: In ${pickupCity} (${pickupAddress}) on ${visitDate}. Target inspection: ${targetDescription}`,
         ],
       });
 
       setIsSubmitting(false);
       setIsSuccess(true);
-      showToast('Free Cab booked successfully! Driver details will be sent.', 'success');
+      showToast('Free Site Visit booked successfully! Visit details will be sent.', 'success');
 
       setTimeout(() => {
         const text = `🚖 *Free Site Visit Cab Booking Request*\nName: ${fullName}\nPhone: ${phone}\nPickup: ${pickupAddress}, ${pickupCity}\nPreferred Date: ${visitDate}\nDestination / Plots to Inspect: ${targetDescription}\nService: Doorstep AC Cab Pickup`;
@@ -90,10 +90,10 @@ export const FreeCabModal: React.FC<FreeCabModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-black tracking-wide text-white">
-                Book Free Site Visit Cab
+                Book Free Site Visit
               </h3>
               <p className="text-[11px] text-[#EAB308] font-semibold">
-                Doorstep AC Pickup & Drop · 100% Free
+                Guided On-Site Inspection · 100% Free
               </p>
             </div>
           </div>
@@ -258,11 +258,11 @@ export const FreeCabModal: React.FC<FreeCabModalProps> = ({
                 className="w-full min-h-[46px] rounded-xl bg-[#15803D] hover:bg-[#113B24] active:scale-[0.99] text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer mt-2"
               >
                 {isSubmitting ? (
-                  <span>Scheduling Cab Dispatch...</span>
+                  <span>Scheduling Site Visit...</span>
                 ) : (
                   <>
-                    <Car className="w-4 h-4" />
-                    <span>Confirm Free Cab Pickup</span>
+                    <Sparkles className="w-4 h-4 text-[#EAB308]" />
+                    <span>Confirm Free Site Visit</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

@@ -32,7 +32,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { id: 'properties', label: 'Properties', icon: Building2 },
     { id: 'hotspot-simulator', label: 'Plot Management', icon: Sparkles },
     { id: 'leads', label: 'Leads', icon: Users },
-    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
@@ -46,12 +45,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="p-5 border-b border-[#1E5D32]">
             <div className="flex items-center gap-3">
               {/* Logo Icon Box */}
-              <div className="w-10 h-10 rounded-xl bg-[#0B2516] shadow-sm border border-[#EAB308]/40 p-1.5 flex items-center justify-center shrink-0">
-                {settings.logoUrl ? (
-                  <img src={settings.logoUrl} alt={settings.companyName} className="w-full h-full object-contain" />
-                ) : (
-                  <KriyaaLogo className="w-full h-full" />
-                )}
+              <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-[#EAB308]/60 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                <img src={settings.logoUrl || '/kriyaa-logo.jpg'} alt={settings.companyName} className="w-full h-full object-contain" />
               </div>
               <div className="overflow-hidden min-w-0">
                 <h1 className="text-sm font-black tracking-wider text-white uppercase truncate">
@@ -154,11 +149,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* ─────────────────────────────────────────────────────────────
           3. MOBILE BOTTOM NAVIGATION (< 768px, Fixed Bottom)
-          Matches exact Deep Forest Green #113B24 of the top header bar
+          Equally divided into 5 equal parts across the screen
           ───────────────────────────────────────────────────────────── */}
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="flex md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#113B24] border-t border-[#1E5D32] px-2 py-2.5 justify-around items-center select-none shadow-2xl text-slate-300"
+        className="grid grid-cols-5 md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#113B24] border-t border-[#1E5D32] px-1 py-2 items-center select-none shadow-2xl text-slate-300 w-full"
       >
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
@@ -168,7 +163,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className="relative flex flex-col items-center justify-center py-1 px-2 cursor-pointer focus:outline-none transition-colors"
+              className="relative flex flex-col items-center justify-center py-1 px-1 cursor-pointer focus:outline-none transition-colors w-full"
             >
               {isActive && (
                 <motion.div
@@ -177,14 +172,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                 />
               )}
-              <div className="relative z-10 flex flex-col items-center">
+              <div className="relative z-10 flex flex-col items-center w-full">
                 <Icon
                   className={`w-5 h-5 transition-transform duration-150 ${
                     isActive ? 'text-[#EAB308] scale-110' : 'text-slate-300'
                   }`}
                 />
                 <span
-                  className={`text-[11px] tracking-tight mt-0.5 font-semibold transition-colors ${
+                  className={`text-[10px] tracking-tight mt-0.5 font-semibold transition-colors truncate max-w-full text-center ${
                     isActive ? 'text-[#EAB308] font-bold' : 'text-slate-300'
                   }`}
                 >

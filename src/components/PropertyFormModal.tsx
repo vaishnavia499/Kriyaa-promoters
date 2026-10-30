@@ -241,13 +241,13 @@ export const PropertyFormModal: React.FC = () => {
             initial={{ scale: 0.95, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            className="relative z-10 w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 my-4"
+            className="relative z-10 w-full max-w-2xl bg-white dark:bg-[#0B2516] rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-[#1E5D32] my-auto max-h-[90vh] flex flex-col"
           >
             {/* Header: Deep Forest Green matching brand theme */}
-            <div className="px-5 py-4 bg-[#113B24] text-white flex items-center justify-between border-b border-[#1E5D32]">
+            <div className="px-5 py-4 bg-[#113B24] text-white flex items-center justify-between border-b border-[#1E5D32] shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
-                  <Building2 className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-[#EAB308]">
+                  <Building2 className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">
@@ -260,15 +260,17 @@ export const PropertyFormModal: React.FC = () => {
               </div>
 
               <button
+                type="button"
                 onClick={closePropertyModal}
                 className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                title="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto text-xs">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs">
               {errorMsg && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg font-medium">
                   {errorMsg}
@@ -581,22 +583,30 @@ export const PropertyFormModal: React.FC = () => {
 
               {/* Description */}
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">Description</label>
+                <label className="font-bold text-slate-700 dark:text-slate-200">Description</label>
                 <textarea
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white font-medium"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-900 font-medium"
                 />
               </div>
 
-              {/* Submit Button */}
-              <div className="pt-2">
+              {/* Sticky Bottom Action Footer (Always Visible & Clickable) */}
+              <div className="sticky bottom-0 -mx-5 -mb-5 sm:-mx-6 sm:-mb-6 p-4 sm:px-6 bg-white/95 dark:bg-[#0B2516]/95 backdrop-blur-md border-t border-slate-200 dark:border-[#1E5D32] flex items-center justify-between gap-3 shrink-0 z-30 shadow-lg mt-4">
+                <button
+                  type="button"
+                  onClick={closePropertyModal}
+                  className="min-h-[46px] px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+
                 <button
                   type="submit"
-                  className="w-full min-h-[48px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer text-sm"
+                  className="flex-1 sm:flex-initial min-h-[46px] px-6 py-2.5 bg-[#15803D] hover:bg-[#113B24] text-white font-black rounded-xl shadow-lg shadow-emerald-950/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer text-xs sm:text-sm"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-4 h-4 text-[#EAB308]" />
                   <span>{editingProperty ? 'Save Property Changes' : 'Add Property to Inventory'}</span>
                 </button>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Sparkles, CheckCircle2, ShieldCheck, Phone, User, MessageCircle, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -18,11 +18,19 @@ export const FreeConsultationModal: React.FC<FreeConsultationModalProps> = ({
   const { saveLead, showToast, settings } = useApp();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [preferredPlot, setPreferredPlot] = useState(
-    prefillPlot ? `Plot #${prefillPlot.plotNumber} (${prefillPlot.projectName})` : 'Golden City DTCP Plots'
-  );
+  const [preferredPlot, setPreferredPlot] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    if (prefillPlot) {
+      setPreferredPlot(
+        `Plot #${prefillPlot.plotNumber} (${prefillPlot.plotDimensions} · ${prefillPlot.projectName || 'Golden City'})`
+      );
+    } else {
+      setPreferredPlot('Golden City DTCP Plots');
+    }
+  }, [prefillPlot, isOpen]);
 
   if (!isOpen) return null;
 

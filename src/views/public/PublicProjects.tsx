@@ -21,11 +21,27 @@ import {
   Clock,
   Landmark,
   X,
+  Box,
+  ChevronLeft,
+  ChevronRight,
+  Camera,
+  FileText,
+  Download,
+  Droplet,
+  Navigation,
+  Train,
+  Plane,
+  GraduationCap,
+  HeartPulse,
+  ShoppingBag,
+  FolderOpen,
+  Compass,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Project, Property, LayoutDisplayMode, PropertyStatus, PublicTab } from '../../types';
 import { MasterLayoutViewer } from '../../components/public/MasterLayoutViewer';
 import { PlotInspectorCard } from '../../components/public/PlotInspectorCard';
+import { PlotDetailsModal } from '../../components/public/PlotDetailsModal';
 import { PublicFooter } from '../../components/public/PublicFooter';
 
 interface PublicProjectsProps {
@@ -62,10 +78,16 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
   );
 
   // Top tab switcher inside full screen project view:
-  // Tab 1: 'layout' (Interactive Master Layout)
-  // Tab 2: 'overview' (Project Overview & Amenities)
+  // Tab 1: 'details' (Plot Details & Full Project Overview Showcase)
+  // Tab 2: 'layout' (Interactive Master Layout)
   // Tab 3: 'table' (Plot Inventory Table & Filter)
-  const [projectSubTab, setProjectSubTab] = useState<'layout' | 'overview' | 'table'>('layout');
+  const [projectSubTab, setProjectSubTab] = useState<'details' | 'layout' | 'table'>('details');
+
+  // Hero Media Card Carousel slide index
+  const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
+
+  // Plot Details Modal state
+  const [isPlotModalOpen, setIsPlotModalOpen] = useState(false);
 
   // Master Layout Display Mode (topdown | blueprint | isometric | satellite)
   const [displayMode, setDisplayMode] = useState<LayoutDisplayMode>('topdown');
@@ -199,6 +221,20 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
     };
   };
 
+  const heroMediaImages = useMemo(() => [
+    viewingProject?.masterPlanImage || 'https://images.unsplash.com/photo-1524813686514-a57563d77d61?auto=format&fit=crop&w=1400&q=85',
+    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1400&q=85',
+    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=85',
+    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=85',
+  ], [viewingProject]);
+
+  const handleDownloadBrochure = () => {
+    showToast('Downloading Golden City Master Brochure PDF & Sanctioned Map...', 'info');
+    setTimeout(() => {
+      window.open('/golden-city-layout.jpg', '_blank');
+    }, 500);
+  };
+
   // ─────────────────────────────────────────────────────────────
   // 1. IMMERSIVE FULL-SCREEN PROJECT VIEW
   // ─────────────────────────────────────────────────────────────
@@ -242,206 +278,524 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <button
                 type="button"
-                onClick={() => onOpenCabBooking(inspectedPlot || undefined)}
+                onClick={() => onOpenConsultation(inspectedPlot || undefined)}
                 className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[#15803D] hover:bg-[#113B24] text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md"
               >
-                <Car className="w-4 h-4 text-[#EAB308]" />
-                <span>Book Free Site Visit Cab</span>
+                <Sparkles className="w-4 h-4 text-[#EAB308]" />
+                <span>Book Free Site Visit</span>
               </button>
             </div>
           </div>
 
           {/* ─────────────────────────────────────────────────────────────
-              TOP TAB SWITCHER (Rendered on dedicated row below title as
-              responsive 3-button grid with zero cut-off text)
+              1. TOP 3-TAB SEGMENTED NAVIGATION BAR (Sticky, Clean & Responsive)
               ───────────────────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
-            {/* Tab 1: Interactive Master Layout */}
-            <button
-              type="button"
-              onClick={() => setProjectSubTab('layout')}
-              className={`min-h-[48px] px-4 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 transition-all cursor-pointer border ${
-                projectSubTab === 'layout'
-                  ? 'bg-[#15803D] text-white border-[#15803D] shadow-lg shadow-emerald-950/20'
-                  : 'bg-white dark:bg-[#0B2516] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#1E5D32] hover:bg-slate-50 dark:hover:bg-[#112F1C]'
-              }`}
-            >
-              <Layers className="w-4 h-4 text-[#EAB308]" />
-              <span>Tab 1: Interactive Master Layout</span>
-            </button>
+          <div className="sticky top-2 z-40 w-full max-w-xl mx-auto px-2">
+            <div className="bg-white/95 dark:bg-[#07170E]/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/90 dark:border-[#1E5D32] flex items-center justify-between gap-1 shadow-lg">
+              {/* Tab 1: Plot Details */}
+              <button
+                type="button"
+                onClick={() => setProjectSubTab('details')}
+                className={`flex-1 min-h-[42px] px-3 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  projectSubTab === 'details'
+                    ? 'bg-[#15803D] dark:bg-[#113B24] text-white border border-[#EAB308]/40 shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <FolderOpen className="w-4 h-4 text-[#EAB308]" />
+                <span>Plot Details</span>
+              </button>
 
-            {/* Tab 2: Project Overview & Amenities */}
-            <button
-              type="button"
-              onClick={() => setProjectSubTab('overview')}
-              className={`min-h-[48px] px-4 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 transition-all cursor-pointer border ${
-                projectSubTab === 'overview'
-                  ? 'bg-[#15803D] text-white border-[#15803D] shadow-lg shadow-emerald-950/20'
-                  : 'bg-white dark:bg-[#0B2516] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#1E5D32] hover:bg-slate-50 dark:hover:bg-[#112F1C]'
-              }`}
-            >
-              <Building2 className="w-4 h-4 text-[#EAB308]" />
-              <span>Tab 2: Overview & Amenities</span>
-            </button>
+              {/* Tab 2: Master Layout */}
+              <button
+                type="button"
+                onClick={() => setProjectSubTab('layout')}
+                className={`flex-1 min-h-[42px] px-3 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  projectSubTab === 'layout'
+                    ? 'bg-[#15803D] dark:bg-[#113B24] text-white border border-[#EAB308]/40 shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Master Layout</span>
+              </button>
 
-            {/* Tab 3: Plot Inventory Table & Filter */}
-            <button
-              type="button"
-              onClick={() => setProjectSubTab('table')}
-              className={`min-h-[48px] px-4 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 transition-all cursor-pointer border ${
-                projectSubTab === 'table'
-                  ? 'bg-[#15803D] text-white border-[#15803D] shadow-lg shadow-emerald-950/20'
-                  : 'bg-white dark:bg-[#0B2516] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#1E5D32] hover:bg-slate-50 dark:hover:bg-[#112F1C]'
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-[#EAB308]" />
-              <span>Tab 3: Plot Inventory ({projectPlots.length})</span>
-            </button>
+              {/* Tab 3: Inventory (45) */}
+              <button
+                type="button"
+                onClick={() => setProjectSubTab('table')}
+                className={`flex-1 min-h-[42px] px-3 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  projectSubTab === 'table'
+                    ? 'bg-[#15803D] dark:bg-[#113B24] text-white border border-[#EAB308]/40 shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Layers className="w-4 h-4 text-[#EAB308]" />
+                <span>Inventory ({projectPlots.length})</span>
+              </button>
+            </div>
           </div>
 
           {/* ─────────────────────────────────────────────────────────────
-              TAB 1 CONTENT: INTERACTIVE MASTER LAYOUT + INSPECTOR CARD
+              TAB 1 CONTENT: "PLOT DETAILS" TAB VIEW (EXACT REPLICATION)
               ───────────────────────────────────────────────────────────── */}
-          {projectSubTab === 'layout' && (
-            <div className="space-y-6">
-              {/* Interactive Master Layout Viewer with 4 modes */}
-              <MasterLayoutViewer
-                project={viewingProject}
-                plots={projectPlots}
-                selectedPlot={inspectedPlot}
-                onSelectPlot={(p) => setInspectedPlotId(p.id)}
-                displayMode={displayMode}
-                onModeChange={(m) => setDisplayMode(m)}
-              />
-
-              {/* Synchronized Plot Inspector Card */}
-              {inspectedPlot && (
-                <div id="plot-inspector">
-                  <PlotInspectorCard
-                    plot={inspectedPlot}
-                    project={viewingProject}
-                    isSaved={isPlotSaved(inspectedPlot.id)}
-                    onToggleSave={(id) => toggleSavePlot(id)}
-                    onBookCab={(p) => onOpenCabBooking(p)}
-                    onWhatsAppInquiry={(p) => handleWhatsAppInquiry(p)}
-                  />
+          {projectSubTab === 'details' && (
+            <div className="space-y-5 max-w-3xl mx-auto">
+              {/* A. HERO MEDIA CARD */}
+              <div className="relative rounded-3xl overflow-hidden border border-slate-200 dark:border-[#1E5D32] shadow-xl aspect-[16/10] sm:aspect-[21/10] bg-slate-950 group select-none">
+                {/* Top Badges Overlay */}
+                <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-2 z-20 pointer-events-none">
+                  <div className="px-3 py-1.5 rounded-full bg-[#CA8A04] text-white text-[10px] sm:text-[11px] font-black shadow-lg flex items-center gap-1.5 backdrop-blur-xs">
+                    <span>⭐ GRAND A PLATTED COLONY</span>
+                  </div>
+                  <div className="px-3 py-1.5 rounded-full bg-black/60 text-white text-[10px] sm:text-[11px] font-bold shadow-lg border border-white/20 flex items-center gap-1.5 backdrop-blur-xs">
+                    <MapPin className="w-3.5 h-3.5 text-[#EAB308]" />
+                    <span>{viewingProject.totalAreaExtent || '12.5 Gated Acres'}</span>
+                  </div>
                 </div>
-              )}
+
+                {/* Hero Drone/Site Image */}
+                <img
+                  src={heroMediaImages[currentHeroSlide]}
+                  alt="Golden City Showcase"
+                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                />
+
+                {/* Left/Right Carousel Navigation Arrows */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentHeroSlide((prev) =>
+                      prev === 0 ? heroMediaImages.length - 1 : prev - 1
+                    )
+                  }
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all cursor-pointer shadow-lg z-20 backdrop-blur-xs active:scale-90"
+                  title="Previous Photo"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentHeroSlide((prev) =>
+                      prev === heroMediaImages.length - 1 ? 0 : prev + 1
+                    )
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all cursor-pointer shadow-lg z-20 backdrop-blur-xs active:scale-90"
+                  title="Next Photo"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                {/* Pagination Indicators (Bottom Left Badge & Bottom Right Dots) */}
+                <div className="absolute bottom-20 sm:bottom-24 left-4 z-20">
+                  <div className="px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-xs text-white text-[10px] sm:text-xs font-bold flex items-center gap-1.5 shadow-md">
+                    <Camera className="w-3.5 h-3.5 text-[#EAB308]" />
+                    <span>
+                      {currentHeroSlide + 1}/{heroMediaImages.length} · Photos & Video
+                    </span>
+                  </div>
+                </div>
+
+                <div className="absolute bottom-20 sm:bottom-24 right-4 z-20 flex items-center gap-1.5">
+                  {heroMediaImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentHeroSlide(idx)}
+                      className={`h-2 rounded-full transition-all cursor-pointer ${
+                        idx === currentHeroSlide
+                          ? 'w-5 bg-[#EAB308]'
+                          : 'w-2 bg-white/60 hover:bg-white'
+                      }`}
+                      title={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+
+                {/* Bottom Gradient Overlay */}
+                <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 bg-gradient-to-t from-black/95 via-black/75 to-transparent flex items-end justify-between gap-4 text-white z-10">
+                  <div>
+                    <span className="text-[10px] font-black text-[#EAB308] tracking-widest uppercase block">
+                      PRIME LOCATION
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+                      {viewingProject.name === 'Golden City' ? 'Golden City Enclave' : viewingProject.name}
+                    </h2>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-300 mt-0.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#CA8A04] shrink-0" />
+                      <span>
+                        {viewingProject.location === 'Cuddalore'
+                          ? 'Vandipalayam Main Road, Cuddalore'
+                          : `${viewingProject.location}, ${viewingProject.district}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[9px] font-black text-[#EAB308] tracking-widest uppercase block">
+                      AVAILABLE SIZES
+                    </span>
+                    <div className="text-base sm:text-xl font-black text-white">
+                      800 – 2,400 <span className="text-xs text-slate-300 font-normal">sq.ft</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* B. PROJECT OVERVIEW CARD */}
+              <div className="bg-white dark:bg-[#0B2516] rounded-3xl border border-slate-200 dark:border-[#1E5D32] p-5 sm:p-6 shadow-md space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-[#CA8A04] flex items-center justify-center shrink-0">
+                      <FolderOpen className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                        Project Overview
+                      </h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        KRIYAA PROMOTERS FLAGSHIP COLONY
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold shrink-0">
+                    Phase 1: ACTIVE
+                  </span>
+                </div>
+
+                {/* 2x2 Clean Metric Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-100 dark:border-[#1E5D32]/50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      TOTAL PLOTS
+                    </span>
+                    <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">
+                      45 Demarcated Plots
+                    </span>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">
+                      Phase 1 (Limited Units)
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-100 dark:border-[#1E5D32]/50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      BASE PRICE
+                    </span>
+                    <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">
+                      ₹1,200 / Sq.Ft
+                    </span>
+                    <span className="text-[11px] text-amber-600 dark:text-[#EAB308] font-bold block mt-0.5">
+                      Approved Govt Valuation
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-100 dark:border-[#1E5D32]/50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      TOTAL LAYOUT AREA
+                    </span>
+                    <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">
+                      12.5 Gated Acres
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block mt-0.5">
+                      Wide tar roads & green resv
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-100 dark:border-[#1E5D32]/50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      PLOT SIZES AVAILABLE
+                    </span>
+                    <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">
+                      800 – 2,400 Sq.Ft
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block mt-0.5">
+                      1.8 – 5.5 Cents Units
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom Strip */}
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-center gap-2.5 text-xs font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-[#EAB308] shrink-0" />
+                  <span>Project Type: DTCP & RERA Approved Residential Plotted Colony</span>
+                </div>
+              </div>
+
+              {/* C. MASTER BROCHURE DOWNLOAD CARD */}
+              <div className="bg-gradient-to-br from-[#081B10] via-[#0B2516] to-[#04140B] rounded-3xl p-5 border border-[#CA8A04]/40 shadow-xl text-white space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-[#CA8A04]/20 border border-[#CA8A04]/50 flex items-center justify-center text-[#EAB308] shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm sm:text-base font-black text-white">
+                        {viewingProject.name} Master Brochure
+                      </h4>
+                      <span className="px-1.5 py-0.5 rounded bg-[#EAB308] text-slate-950 font-black text-[9px]">
+                        PDF
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Includes Sanctioned Layout Map, DTCP Copies & Price Schedule
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-emerald-900/50">
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Verified Document · 4.8 MB</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadBrochure}
+                    className="px-4 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#ca8a04] text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Brochure 📥</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* D. TOWNSHIP INFRASTRUCTURE CARD */}
+              <div className="bg-white dark:bg-[#0B2516] rounded-3xl border border-slate-200 dark:border-[#1E5D32] p-5 sm:p-6 shadow-md space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    Township Infrastructure
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                    FULLY COMPLETED
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    {
+                      title: '40ft & 30ft Heavy Tar Roads',
+                      desc: 'Storm water drain culverts, kerb stones & LED lighting.',
+                      icon: Car,
+                    },
+                    {
+                      title: 'Tested Potable Sweet Water (28ft)',
+                      desc: 'TDS tested underground sweet drinking water vein.',
+                      icon: Droplet,
+                    },
+                    {
+                      title: '10,000 Sq.Ft OSR Park & Track',
+                      desc: 'Children play lawn, reflexology pathway & native grove.',
+                      icon: TreePine,
+                    },
+                    {
+                      title: '100% Clear Title & Immediate Patta',
+                      desc: '30 year lawyer encumbrance verified, instant registration.',
+                      icon: ShieldCheck,
+                    },
+                  ].map((infra, idx) => {
+                    const Icon = infra.icon;
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-100 dark:border-[#1E5D32]/50 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-[#113B24] border border-[#1E5D32] text-emerald-400 flex items-center justify-center shrink-0">
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                              {infra.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              {infra.desc}
+                            </p>
+                          </div>
+                        </div>
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* E. NEARBY LANDMARKS & CONNECTIVITY */}
+              <div className="bg-white dark:bg-[#0B2516] rounded-3xl border border-slate-200 dark:border-[#1E5D32] p-5 sm:p-6 shadow-md space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    Nearby Landmarks
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                    KEY HUBS
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {[
+                    {
+                      name: 'NH-45A / ECR Coastal Corridor',
+                      sub: 'Rapid seamless access to arterial highway connecting Puducherry & Chidambaram',
+                      dist: '400 m (1 min)',
+                      isAmber: false,
+                      icon: Navigation,
+                    },
+                    {
+                      name: 'Cuddalore Port Junction Rwy Station',
+                      sub: 'Main Southern Railway junction with express trains to Chennai & Tiruchirappalli',
+                      dist: '4.2 km (8 mins)',
+                      isAmber: true,
+                      icon: Train,
+                    },
+                    {
+                      name: 'Airport Connectivity',
+                      sub: 'Pondicherry Airport = 24 km (35 mins) & Chennai International Airport = 180 km',
+                      dist: '24 km (35 mins)',
+                      isAmber: false,
+                      icon: Plane,
+                    },
+                    {
+                      name: 'Schools & Premier Colleges',
+                      sub: "St. Joseph's Hr. Sec., Krishnasamy Memorial School & Periyar Arts College (2.5 km)",
+                      dist: '1.0 km (2 mins)',
+                      isAmber: false,
+                      icon: GraduationCap,
+                    },
+                    {
+                      name: 'Hospitals & Healthcare',
+                      sub: 'Government General Hospital, Krishna Hospital & 24x7 Multi-Specialty Clinics',
+                      dist: '3.5 km (6 mins)',
+                      isAmber: false,
+                      icon: HeartPulse,
+                    },
+                    {
+                      name: 'Shopping Malls & Commercial Hub',
+                      sub: 'AR Shopping Mall, Imperial Road Daily Produce Market & Banking Hubs',
+                      dist: '3.8 km (7 mins)',
+                      isAmber: true,
+                      icon: ShoppingBag,
+                    },
+                  ].map((landmark, idx) => {
+                    const Icon = landmark.icon;
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-100 dark:border-[#1E5D32]/50 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-[#113B24] text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                              {landmark.name}
+                            </h4>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                              {landmark.sub}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black shrink-0 ${
+                            landmark.isAmber
+                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                              : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                          }`}
+                        >
+                          {landmark.dist}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* F. PRE-APPROVED BANK LOANS CARD */}
+              <div className="bg-white dark:bg-[#0B2516] rounded-3xl border border-slate-200 dark:border-[#1E5D32] p-5 sm:p-6 shadow-md space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Landmark className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                      Pre-Approved Bank Loans
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                    Up to 80% Funding
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Instant spot loan approvals, zero hidden fees, and preferential interest rates from verified lending partners.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-200 dark:border-[#1E5D32]/60 text-center">
+                    <span className="text-sm font-black text-slate-900 dark:text-white block">
+                      SBI
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block mt-0.5">
+                      Home Finance
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-200 dark:border-[#1E5D32]/60 text-center">
+                    <span className="text-sm font-black text-slate-900 dark:text-white block">
+                      HDFC
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block mt-0.5">
+                      Bank Ltd
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#112F1C]/70 border border-slate-200 dark:border-[#1E5D32]/60 text-center">
+                    <span className="text-sm font-black text-slate-900 dark:text-white block">
+                      CANARA
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block mt-0.5">
+                      Priority Loan
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* ─────────────────────────────────────────────────────────────
-              TAB 2 CONTENT: PROJECT OVERVIEW & AMENITIES
+              TAB 2 CONTENT: INTERACTIVE MASTER LAYOUT (FULL SCREEN EDGE-TO-EDGE)
               ───────────────────────────────────────────────────────────── */}
-          {projectSubTab === 'overview' && (
-            <div className="space-y-6">
-              {/* Hero Summary Card */}
-              <div className="bg-white dark:bg-[#0B2516] rounded-3xl border border-slate-200 dark:border-[#1E5D32] p-6 sm:p-8 shadow-md space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-[#EAB308] uppercase tracking-wider block">
-                      Approved Township Scheme
-                    </span>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                      {viewingProject.name} — Comprehensive Project Overview
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Sanctioned by Director of Town & Country Planning (DTCP) under Sanction {viewingProject.dtcpNumber}.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => onOpenConsultation()}
-                    className="min-h-[46px] px-5 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#ca8a04] text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-md shrink-0"
-                  >
-                    <span>Download Project Brochure (PDF)</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed pt-2">
-                  {viewingProject.description} Designed with rigorous adherence to Vastu shastra and DTCP town planning norms, the community guarantees spacious road networks, independent revenue patta transfers, and round-the-clock security infrastructure.
-                </p>
-              </div>
-
-              {/* Township Amenities Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  {
-                    title: '40ft & 60ft Heavy Tar Roads',
-                    desc: 'Dual-lane blacktop asphalt roads designed to handle heavy vehicular transit with concrete paver walkways.',
-                    icon: 'Car',
-                  },
-                  {
-                    title: 'Tested Potable Sweet Water',
-                    desc: 'Underground natural sweet water reservoir at 35-foot depth with individual plot connection lines.',
-                    icon: 'Water',
-                  },
-                  {
-                    title: '40,000 Sq.Ft OSR Children Park',
-                    desc: 'Legally reserved DTCP park with children playground equipment, reflexology walking track, and landscaping.',
-                    icon: 'TreePine',
-                  },
-                  {
-                    title: 'Grand Entrance Archway',
-                    desc: 'Architectural entry portal with boom barriers, 24/7 security cabin, and CCTV surveillance monitoring.',
-                    icon: 'Building2',
-                  },
-                  {
-                    title: 'Underground 3-Phase Power',
-                    desc: 'Pre-laid TNEB power conduits, independent transformer yard, and solar street illumination poles.',
-                    icon: 'Sparkles',
-                  },
-                  {
-                    title: 'Individual Patta Guaranteed',
-                    desc: 'Prompt name transfer in government revenue records immediately after sub-registrar registration.',
-                    icon: 'ShieldCheck',
-                  },
-                ].map((amenity, idx) => (
-                  <div
-                    key={idx}
-                    className="p-5 rounded-2xl bg-white dark:bg-[#0B2516] border border-slate-200 dark:border-[#1E5D32] shadow-sm flex items-start gap-4"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-[#15803D]/10 text-[#15803D] dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                      <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                        {amenity.title}
-                      </h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                        {amenity.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Bank Approvals Strip */}
-              <div className="bg-[#113B24] rounded-3xl p-6 text-white border border-[#1E5D32] flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#EAB308]">
-                    <Landmark className="w-4 h-4" />
-                    <span>PRE-APPROVED FINANCIAL INSTITUTIONS</span>
-                  </div>
-                  <h3 className="text-lg font-black text-white">
-                    Up to 80% Housing & Land Purchase Loans
-                  </h3>
-                  <p className="text-xs text-emerald-100/90 max-w-xl">
-                    Pre-sanctioned credit approvals from SBI, HDFC, Indian Bank, and Canara Bank. Minimal documentation with 7-day loan processing.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => onOpenConsultation()}
-                  className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#15803D] hover:bg-[#164329] text-white font-bold text-xs flex items-center gap-2 border border-emerald-400/30 shrink-0"
-                >
-                  <span>Check Loan Eligibility</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              </div>
+          {projectSubTab === 'layout' && (
+            <div
+              className="relative w-screen h-[calc(100vh-125px)] min-h-[85vh] overflow-hidden -my-6"
+              style={{
+                width: '100vw',
+                marginLeft: 'calc(-50vw + 50%)',
+              }}
+            >
+              {/* Interactive Master Layout Viewer with 4 modes & full-bleed canvas */}
+              <MasterLayoutViewer
+                project={viewingProject}
+                plots={projectPlots}
+                selectedPlot={inspectedPlot}
+                onSelectPlot={(p) => {
+                  setInspectedPlotId(p.id);
+                  setIsPlotModalOpen(true);
+                }}
+                displayMode={displayMode}
+                onModeChange={(m) => setDisplayMode(m)}
+                onOpenConsultation={() => onOpenConsultation(inspectedPlot || undefined)}
+                onWhatsAppInquiry={() => {
+                  if (inspectedPlot) {
+                    handleWhatsAppInquiry(inspectedPlot);
+                  } else {
+                    window.open(
+                      'https://wa.me/919443278899?text=Hello%20Kriyaa%20Promoters,%20I%20am%20exploring%20the%20Golden%20City%20layout',
+                      '_blank'
+                    );
+                  }
+                }}
+              />
             </div>
           )}
 
@@ -527,7 +881,7 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
                               key={plot.id}
                               onClick={() => {
                                 setInspectedPlotId(plot.id);
-                                setProjectSubTab('layout');
+                                setIsPlotModalOpen(true);
                               }}
                               className="hover:bg-emerald-50/50 dark:hover:bg-[#112F1C] cursor-pointer transition-colors"
                             >
@@ -598,6 +952,21 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
               </div>
             </div>
           )}
+
+          {/* Interactive Plot Details Popup Modal (Triggered on layout parcel click or inventory table row click) */}
+          <PlotDetailsModal
+            isOpen={isPlotModalOpen}
+            onClose={() => setIsPlotModalOpen(false)}
+            plot={inspectedPlot}
+            project={viewingProject}
+            isSaved={inspectedPlot ? isPlotSaved(inspectedPlot.id) : false}
+            onToggleSave={(id) => toggleSavePlot(id)}
+            onBookConsultation={(plot) => {
+              setIsPlotModalOpen(false);
+              onOpenConsultation(plot);
+            }}
+            onWhatsAppInquiry={(plot) => handleWhatsAppInquiry(plot)}
+          />
         </main>
 
         {/* Project Footer at bottom of Full-Screen View */}
@@ -832,7 +1201,7 @@ export const PublicProjects: React.FC<PublicProjectsProps> = ({
                     type="button"
                     onClick={() => {
                       setActiveProjectId(project.id);
-                      setProjectSubTab('layout');
+                      setProjectSubTab('details');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     className="w-full min-h-[46px] rounded-xl bg-[#15803D] hover:bg-[#113B24] active:scale-[0.99] text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"

@@ -14,6 +14,7 @@ import {
   Maximize2,
   X,
   ChevronDown,
+  Box,
 } from 'lucide-react';
 import { PublicFooter } from '../../components/public/PublicFooter';
 import { PUBLIC_GALLERY } from '../../data/publicData';
@@ -120,9 +121,9 @@ const HeroMediaCard: React.FC<HeroMediaCardProps> = ({ onOpenDroneVideo, onTabCh
 
   return (
     <>
-      <div className="w-full bg-[#071A0F] rounded-[26px] border border-emerald-800/50 shadow-2xl overflow-hidden select-none relative group">
+      <div className="w-full h-full flex flex-col bg-[#071A0F] rounded-[26px] border border-emerald-800/50 shadow-2xl overflow-hidden select-none relative group">
         {/* Media Viewport */}
-        <div className="relative aspect-[16/10] sm:aspect-video w-full overflow-hidden bg-slate-950">
+        <div className="relative aspect-[16/10] sm:aspect-video md:aspect-auto md:flex-1 w-full overflow-hidden bg-slate-950 min-h-[260px] md:min-h-[340px]">
           <AnimatePresence mode="wait">
             <motion.img
               key={current.id}
@@ -305,98 +306,106 @@ export const PublicHome: React.FC<PublicHomeProps> = ({
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-[#F1F5F9] dark:bg-[#06140B] text-slate-900 dark:text-slate-100 select-none pb-8">
-      {/* Container wrapper for mobile card-centered look */}
-      <div className="w-full max-w-md mx-auto px-3 sm:px-0 pt-3 space-y-4">
+      {/* Responsive Container: Preserves exact mobile layout on < md, expands to full-width real-estate desktop experience on md/lg/xl */}
+      <div className="w-full max-w-md md:max-w-7xl mx-auto px-3 sm:px-4 md:px-8 pt-3 md:pt-6 space-y-4 md:space-y-8">
 
         {/* ════════════════════════════════════════════════════════════
-            1. HERO CARD (Dark Forest Green Container)
+            1 & 2. HERO + 4K DRONE MEDIA HERO (Mobile: Stacked, Desktop: 2-Column Grid)
             ════════════════════════════════════════════════════════════ */}
-        <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-b from-[#092615] via-[#071F11] to-[#04140B] text-white p-6 sm:p-7 text-center shadow-2xl border border-emerald-900/60">
-          {/* Subtle Ambient Glow */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-[#15803D]/20 rounded-full blur-[70px] pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#EAB308]/15 rounded-full blur-[70px] pointer-events-none" />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 lg:gap-8 items-stretch">
+          {/* Left Column: Hero Card with Value Proposition & CTA */}
+          <div className="md:col-span-7 lg:col-span-7 flex flex-col">
+            <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-b from-[#092615] via-[#071F11] to-[#04140B] text-white p-6 sm:p-7 md:p-8 lg:p-10 text-center md:text-left shadow-2xl border border-emerald-900/60 flex-1 flex flex-col justify-between">
+              {/* Subtle Ambient Glow */}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-[#15803D]/20 rounded-full blur-[70px] pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#EAB308]/15 rounded-full blur-[70px] pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col items-center">
-            {/* Top Green Welcome Text */}
-            <p className="text-xs sm:text-sm font-black text-[#34D399] tracking-widest uppercase">
-              WELCOME TO KRIYAA PROMOTERS
-            </p>
+              <div className="relative z-10 flex flex-col items-center md:items-start flex-1 justify-between">
+                <div>
+                  {/* Top Green Welcome Text */}
+                  <p className="text-xs sm:text-sm font-black text-[#34D399] tracking-widest uppercase">
+                    WELCOME TO KRIYAA PROMOTERS
+                  </p>
 
-            {/* Sub-label with bullet points */}
-            <p className="text-[11px] sm:text-xs font-black text-[#FACC15] tracking-wider uppercase mt-1 flex items-center justify-center gap-1.5">
-              <span>●</span>
-              <span>YOUR DREAM</span>
-              <span>●</span>
-              <span>OUR HIGHEST PRIORITY</span>
-            </p>
+                  {/* Sub-label with bullet points */}
+                  <p className="text-[11px] sm:text-xs font-black text-[#FACC15] tracking-wider uppercase mt-1 flex items-center justify-center md:justify-start gap-1.5">
+                    <span>●</span>
+                    <span>YOUR DREAM</span>
+                    <span>●</span>
+                    <span>OUR HIGHEST PRIORITY</span>
+                  </p>
 
-            {/* Main Title */}
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight mt-3">
-              <span className="text-white block">Your Dream Plot,</span>
-              <span className="text-[#FACC15] block">Our Highest Priority</span>
-            </h1>
+                  {/* Main Title */}
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight mt-3 md:mt-4">
+                    <span className="text-white block">Your Dream Plot,</span>
+                    <span className="text-[#FACC15] block">Our Highest Priority</span>
+                  </h1>
 
-            {/* Subtitle description */}
-            <p className="text-xs sm:text-[13px] text-slate-200/90 leading-relaxed max-w-sm mx-auto mt-3">
-              DTCP sanctioned villa plots with 100% clear titles, 40ft blacktop roads, potable sweet water, and guaranteed bank loans across Cuddalore &amp; Pondicherry. Personally guided by{' '}
-              <strong className="text-white font-bold">Rajesh RTR</strong>.
-            </p>
+                  {/* Subtitle description */}
+                  <p className="text-xs sm:text-[13px] md:text-sm lg:text-base text-slate-200/90 leading-relaxed max-w-sm md:max-w-xl mx-auto md:mx-0 mt-3 md:mt-4">
+                    DTCP sanctioned villa plots with 100% clear titles, 40ft blacktop roads, potable sweet water, and guaranteed bank loans across Cuddalore &amp; Pondicherry. Personally guided by{' '}
+                    <strong className="text-white font-bold">Rajesh RTR</strong>.
+                  </p>
+                </div>
 
-            {/* Subtle Divider */}
-            <div className="w-full h-px bg-emerald-900/50 my-4" />
+                <div className="w-full mt-4 md:mt-6">
+                  {/* Subtle Divider */}
+                  <div className="w-full h-px bg-emerald-900/50 mb-4" />
 
-            {/* 3 Quick Stat Badges */}
-            <div className="grid grid-cols-3 gap-2.5 w-full">
-              <div className="bg-[#04170D] border border-emerald-800/70 rounded-xl py-3 px-1 text-center shadow-xs">
-                <div className="text-base sm:text-lg font-black text-[#FACC15]">100%</div>
-                <div className="text-[10px] sm:text-xs text-white font-medium mt-0.5">Clear Title</div>
+                  {/* 3 Quick Stat Badges */}
+                  <div className="grid grid-cols-3 gap-2.5 md:gap-3.5 w-full">
+                    <div className="bg-[#04170D] border border-emerald-800/70 rounded-xl py-3 px-1 text-center shadow-xs">
+                      <div className="text-base sm:text-lg md:text-xl font-black text-[#FACC15]">100%</div>
+                      <div className="text-[10px] sm:text-xs text-white font-medium mt-0.5">Clear Title</div>
+                    </div>
+                    <div className="bg-[#04170D] border border-emerald-800/70 rounded-xl py-3 px-1 text-center shadow-xs">
+                      <div className="text-base sm:text-lg md:text-xl font-black text-[#FACC15]">DTCP</div>
+                      <div className="text-[10px] sm:text-xs text-white font-medium mt-0.5">Approved</div>
+                    </div>
+                    <div className="bg-[#04170D] border border-emerald-800/70 rounded-xl py-3 px-1 text-center shadow-xs">
+                      <div className="text-base sm:text-lg md:text-xl font-black text-[#FACC15]">Up to 80%</div>
+                      <div className="text-[10px] sm:text-xs text-white font-medium mt-0.5">Bank Loan</div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row w-full gap-2.5 md:gap-3.5 mt-4">
+                    <button
+                      type="button"
+                      id="btn-get-free-consultation"
+                      onClick={onOpenConsultation}
+                      className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#D97706] via-[#EAB308] to-[#CA8A04] hover:brightness-105 active:scale-95 text-slate-950 font-black text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 transition cursor-pointer whitespace-nowrap"
+                    >
+                      <span>GET FREE CONSULTATION</span>
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+
+                    <button
+                      type="button"
+                      id="btn-explore-master-plan"
+                      onClick={() => onTabChange('projects')}
+                      className="flex-1 py-3 px-4 rounded-xl bg-[#051A0E] hover:bg-[#072414] border border-emerald-800/80 text-[#FACC15] font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+                    >
+                      <Box className="w-4 h-4 text-[#FACC15]" />
+                      <span>Explore 2D / 3D Master Layout</span>
+                      <ChevronDown className="w-4 h-4 text-[#FACC15]" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="bg-[#04170D] border border-emerald-800/70 rounded-xl py-3 px-1 text-center shadow-xs">
-                <div className="text-base sm:text-lg font-black text-[#FACC15]">DTCP</div>
-                <div className="text-[10px] sm:text-xs text-white font-medium mt-0.5">Approved</div>
-              </div>
-              <div className="bg-[#04170D] border border-emerald-800/70 rounded-xl py-3 px-1 text-center shadow-xs">
-                <div className="text-base sm:text-lg font-black text-[#FACC15]">Up to 80%</div>
-                <div className="text-[10px] sm:text-xs text-white font-medium mt-0.5">Bank Loan</div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col w-full gap-2.5 mt-4">
-              <button
-                type="button"
-                id="btn-get-free-consultation"
-                onClick={onOpenConsultation}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#D97706] via-[#EAB308] to-[#CA8A04] hover:brightness-105 active:scale-95 text-slate-950 font-black text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 transition cursor-pointer"
-              >
-                <span>GET FREE CONSULTATION</span>
-                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-              </button>
-
-              <button
-                type="button"
-                id="btn-explore-master-plan"
-                onClick={() => onTabChange('projects')}
-                className="w-full py-3 rounded-xl bg-[#051A0E] hover:bg-[#072414] border border-emerald-800/80 text-[#FACC15] font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                <span>Explore Master Plan</span>
-                <ChevronDown className="w-4 h-4 text-[#FACC15]" />
-              </button>
-            </div>
+            </section>
           </div>
-        </section>
+
+          {/* Right Column: Standalone Media & 4K Drone Tour Card */}
+          <div className="md:col-span-5 lg:col-span-5 flex flex-col">
+            <HeroMediaCard onOpenDroneVideo={onOpenDroneVideo} onTabChange={onTabChange} />
+          </div>
+        </div>
 
         {/* ════════════════════════════════════════════════════════════
-            2. STANDALONE MEDIA & 4K DRONE HERO CARD
+            3. "4 PILLARS OF ABSOLUTE TRUST" SECTION (Responsive Grid)
             ════════════════════════════════════════════════════════════ */}
-        <section>
-          <HeroMediaCard onOpenDroneVideo={onOpenDroneVideo} onTabChange={onTabChange} />
-        </section>
-
-        {/* ════════════════════════════════════════════════════════════
-            3. "4 PILLARS OF ABSOLUTE TRUST" SECTION
-            ════════════════════════════════════════════════════════════ */}
-        <section className="bg-white dark:bg-[#0B2516] rounded-[28px] border border-slate-100 dark:border-emerald-900/40 p-5 sm:p-6 shadow-xl space-y-4 text-center">
+        <section className="bg-white dark:bg-[#0B2516] rounded-[28px] border border-slate-100 dark:border-emerald-900/40 p-5 sm:p-6 md:p-8 lg:p-10 shadow-xl space-y-4 md:space-y-6 text-center">
           {/* Header */}
           <div className="space-y-1.5 flex flex-col items-center">
             <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#0B2516] border border-[#EAB308]/60 text-[#EAB308] text-[9.5px] font-black uppercase tracking-wider">
@@ -405,61 +414,63 @@ export const PublicHome: React.FC<PublicHomeProps> = ({
               <Star className="w-3 h-3 fill-current" />
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
               4 Pillars of Absolute Trust
             </h2>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-md">
               Over 1,200+ families across Cuddalore and Pondicherry choose Rajesh RTR for their dream home plots
             </p>
           </div>
 
-          {/* 4 Vertical Clean Cards */}
-          <div className="space-y-3 pt-1">
+          {/* 4 Cards: Mobile Vertical, Desktop 4-Column Grid */}
+          <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-4 lg:gap-5 pt-1 text-left">
             {TRUST_PILLARS.map((pillar) => (
               <div
                 key={pillar.id}
-                className="bg-white dark:bg-[#081B10] border border-slate-200/80 dark:border-emerald-800/50 rounded-2xl p-4 shadow-xs space-y-2 text-left hover:border-[#EAB308]/50 transition-colors"
+                className="bg-white dark:bg-[#081B10] border border-slate-200/80 dark:border-emerald-800/50 rounded-2xl p-4 md:p-5 shadow-xs space-y-2 hover:border-[#EAB308]/50 transition-colors flex flex-col justify-between"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#0B2516] border border-[#EAB308]/40 flex items-center justify-center text-[#EAB308] shrink-0 font-black">
-                      {pillar.icon === 'ShieldCheck' && <ShieldCheck className="w-5 h-5" />}
-                      {pillar.icon === 'FileCheck2' && <FileCheck2 className="w-5 h-5" />}
-                      {pillar.icon === 'Landmark' && <Landmark className="w-5 h-5" />}
-                      {pillar.icon === 'Award' && <Award className="w-5 h-5" />}
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#0B2516] border border-[#EAB308]/40 flex items-center justify-center text-[#EAB308] shrink-0 font-black">
+                        {pillar.icon === 'ShieldCheck' && <ShieldCheck className="w-5 h-5" />}
+                        {pillar.icon === 'FileCheck2' && <FileCheck2 className="w-5 h-5" />}
+                        {pillar.icon === 'Landmark' && <Landmark className="w-5 h-5" />}
+                        {pillar.icon === 'Award' && <Award className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight">
+                          {pillar.title}
+                        </h3>
+                        {pillar.subTag && (
+                          <span className="text-[8.5px] font-bold text-slate-400 dark:text-slate-500 tracking-wide">
+                            {pillar.subTag}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight">
-                        {pillar.title}
-                      </h3>
-                      {pillar.subTag && (
-                        <span className="text-[8.5px] font-bold text-slate-400 dark:text-slate-500 tracking-wide">
-                          {pillar.subTag}
-                        </span>
-                      )}
-                    </div>
+
+                    <span
+                      className={`text-[8.5px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0 ${pillar.badgeColor}`}
+                    >
+                      {pillar.badge}
+                    </span>
                   </div>
 
-                  <span
-                    className={`text-[8.5px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0 ${pillar.badgeColor}`}
-                  >
-                    {pillar.badge}
-                  </span>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pt-1 border-t border-slate-100 dark:border-emerald-950">
+                    {pillar.desc}
+                  </p>
                 </div>
-
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pt-1 border-t border-slate-100 dark:border-emerald-950">
-                  {pillar.desc}
-                </p>
               </div>
             ))}
           </div>
         </section>
 
         {/* ════════════════════════════════════════════════════════════
-            4. "1,200+ HAPPY FAMILIES" REVIEWS
+            4. "1,200+ HAPPY FAMILIES" REVIEWS (Responsive Grid)
             ════════════════════════════════════════════════════════════ */}
-        <section className="bg-white dark:bg-[#0B2516] rounded-[28px] border border-slate-100 dark:border-emerald-900/40 p-5 sm:p-6 shadow-xl space-y-4 text-center">
+        <section className="bg-white dark:bg-[#0B2516] rounded-[28px] border border-slate-100 dark:border-emerald-900/40 p-5 sm:p-6 md:p-8 lg:p-10 shadow-xl space-y-4 md:space-y-6 text-center">
           {/* Header */}
           <div className="space-y-1.5 flex flex-col items-center">
             <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FEF08A]/60 dark:bg-amber-950/40 border border-[#CA8A04]/40 text-[#854D0E] dark:text-[#EAB308] text-[9.5px] font-black uppercase tracking-wider">
@@ -467,38 +478,42 @@ export const PublicHome: React.FC<PublicHomeProps> = ({
               <span>Verified Buyer Testimonials</span>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
               1,200+ Happy Families in Cuddalore &amp; Pondy
             </h2>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-md">
               Real experiences from verified homeowners who acquired plots with confidence
             </p>
           </div>
 
-          {/* Review Cards */}
-          <div className="space-y-3 pt-1">
-            {visibleReviews.map((rev) => (
+          {/* Review Cards: Mobile Vertical, Desktop 3-Column Grid */}
+          <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-3 md:gap-5 pt-1 text-left">
+            {(showAllReviews ? TESTIMONIALS : TESTIMONIALS).map((rev, idx) => (
               <div
                 key={rev.id}
-                className="bg-white dark:bg-[#081B10] border border-slate-200/80 dark:border-emerald-800/50 rounded-2xl p-4 text-left shadow-xs space-y-2.5"
+                className={`bg-white dark:bg-[#081B10] border border-slate-200/80 dark:border-emerald-800/50 rounded-2xl p-4 md:p-5 shadow-xs space-y-2.5 flex flex-col justify-between ${
+                  !showAllReviews && idx >= 2 ? 'hidden md:flex' : 'flex'
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-[#EAB308] text-[#EAB308]" />
-                    ))}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-3.5 h-3.5 fill-[#EAB308] text-[#EAB308]" />
+                      ))}
+                    </div>
+                    <span className="text-[8.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      VERIFIED PLOT BUYER
+                    </span>
                   </div>
-                  <span className="text-[8.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                    VERIFIED PLOT BUYER
-                  </span>
+
+                  <p className="text-xs text-slate-700 dark:text-slate-200 italic leading-relaxed">
+                    "{rev.quote}"
+                  </p>
                 </div>
 
-                <p className="text-xs text-slate-700 dark:text-slate-200 italic leading-relaxed">
-                  "{rev.quote}"
-                </p>
-
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-emerald-950">
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-emerald-950 mt-2">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-[#0B2516] border border-[#EAB308]/50 text-[#EAB308] font-black text-xs flex items-center justify-center shrink-0">
                       {rev.initials}
@@ -519,14 +534,16 @@ export const PublicHome: React.FC<PublicHomeProps> = ({
             ))}
           </div>
 
-          {/* View More Link */}
-          <button
-            type="button"
-            onClick={() => setShowAllReviews(!showAllReviews)}
-            className="text-xs font-bold text-[#854D0E] dark:text-[#EAB308] hover:underline cursor-pointer pt-1"
-          >
-            {showAllReviews ? 'Show Less Reviews ▴' : 'View More Reviews →'}
-          </button>
+          {/* View More Link (Mobile Only toggle) */}
+          <div className="md:hidden">
+            <button
+              type="button"
+              onClick={() => setShowAllReviews(!showAllReviews)}
+              className="text-xs font-bold text-[#854D0E] dark:text-[#EAB308] hover:underline cursor-pointer pt-1"
+            >
+              {showAllReviews ? 'Show Less Reviews ▴' : 'View More Reviews →'}
+            </button>
+          </div>
         </section>
 
       </div>

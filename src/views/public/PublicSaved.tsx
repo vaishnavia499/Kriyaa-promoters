@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   BookmarkCheck,
@@ -18,6 +18,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { Property, PublicTab } from '../../types';
 import { PublicFooter } from '../../components/public/PublicFooter';
+import { PlotDetailsModal } from '../../components/public/PlotDetailsModal';
 
 interface PublicSavedProps {
   onTabChange: (tab: PublicTab) => void;
@@ -34,7 +35,8 @@ export const PublicSaved: React.FC<PublicSavedProps> = ({
   onOpenAdminLogin,
   onInspectPlotInProject,
 }) => {
-  const { properties, savedPlotIds, toggleSavePlot, settings, showToast } = useApp();
+  const { properties, projects, savedPlotIds, toggleSavePlot, isPlotSaved, settings, showToast } = useApp();
+  const [modalPlot, setModalPlot] = useState<Property | null>(null);
 
   // Selected properties
   const savedPlots = properties.filter((p) => savedPlotIds.includes(p.id));
@@ -198,7 +200,7 @@ Generated on ${new Date().toLocaleDateString('en-IN')} via Kriyaa Promoters Port
               </div>
             </div>
 
-            {/* VIP Doorstep Cab Concierge Box */}
+            {/* VIP Doorstep Site Visit Concierge Box */}
             <div className="bg-[#03130A] border border-emerald-900/80 rounded-2xl p-4 flex items-center gap-3.5 shadow-md">
               <div className="w-12 h-12 rounded-2xl bg-[#061A0E] border border-[#EAB308] flex items-center justify-center text-[#EAB308] shrink-0 shadow-sm">
                 <Car className="w-5 h-5" />
@@ -206,12 +208,12 @@ Generated on ${new Date().toLocaleDateString('en-IN')} via Kriyaa Promoters Port
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-black text-[#EAB308] uppercase tracking-wide">
-                    VIP DOORSTEP CAB CONCIERGE
+                    VIP SITE VISIT CONCIERGE
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-[#34D399]" />
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed mt-1">
-                  Complimentary doorstep AC cab pickup &amp; drop across{' '}
+                  Complimentary guided site inspection across{' '}
                   <strong className="text-[#EAB308] font-bold">Cuddalore &amp; Pondicherry</strong>{' '}
                   personally arranged by <strong className="text-white font-bold">MD Rajesh RTR</strong>.
                 </p>
@@ -375,14 +377,11 @@ Generated on ${new Date().toLocaleDateString('en-IN')} via Kriyaa Promoters Port
 
                       <button
                         type="button"
-                        onClick={() => {
-                          onTabChange('projects');
-                          onInspectPlotInProject?.(plot);
-                        }}
+                        onClick={() => setModalPlot(plot)}
                         className="w-full min-h-[40px] rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#112F1C] dark:hover:bg-[#184428] text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>View on Interactive Master Plan</span>
+                        <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>View Plot Details & Specs</span>
                       </button>
                     </div>
                   </div>
@@ -404,6 +403,22 @@ Generated on ${new Date().toLocaleDateString('en-IN')} via Kriyaa Promoters Port
               </div>
             )}
           </div>
+        )}
+
+        {/* Interactive Plot Details Popup Modal */}
+        {modalPlot && (
+          <PlotDetailsModal
+            isOpen={modalPlot !== null}
+            onClose={() => setModalPlot(null)}
+            plot={modalPlot}
+            project={projects.find((p) => p.id === modalPlot.projectId) || projects[0]}
+            isSaved={isPlotSaved(modalPlot.id)}
+            onToggleSave={(id) => toggleSavePlot(id)}
+            onBookConsultation={(plot) => {
+              setModalPlot(null);
+              onOpenConsultation(plot);
+            }}
+          />
         )}
       </main>
 

@@ -8,80 +8,105 @@ import {
   Pencil,
   Trash2,
   Sparkles,
-  Compass,
   MapPin,
   CheckCircle2,
-  Check,
   ShieldCheck,
   ExternalLink,
   Phone,
   MessageCircle,
   FileText,
   AlertTriangle,
+  User,
+  Calendar,
+  Layers,
+  ArrowRight,
+  Filter,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Property, PropertyStatus } from '../types';
+import { Property, PropertyStatus, Project, Lead } from '../types';
 
 export const Properties: React.FC = () => {
   const {
     properties,
-    filteredProperties: contextFilteredProperties,
-    selectedProject,
+    projects,
+    leads,
+    selectedProjectId,
     setSelectedProjectId,
-    openAddPropertyModal,
+    openEditProjectModal,
+    openNewProjectWizard,
     openEditPropertyModal,
     updatePropertyStatus,
     deleteProperty,
     settings,
   } = useApp();
 
-  // State management: when selectedPropertyId is null, show card list. When not null, show full-screen in-page detail.
+  // In-page inspection detail view
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<string>('All');
+  const [activeStatusTab, setActiveStatusTab] = useState<'All' | 'Sold' | 'Reserved' | 'Visited' | 'Available'>('All');
+  const [filterProjectId, setFilterProjectId] = useState<string>('all');
 
-  // Filter pills per prompt specifications
-  const filterPills = ['All', 'Land/Plots', 'Commercial', 'Available', 'Sold'];
+  // Match plot with linked lead (by project + plot number)
+  const getLinkedLead = (prop: Property): Lead | undefined => {
+    return leads.find((l) => {
+      const matchProject = !l.projectId || l.projectId === prop.projectId;
+      const targetPlotStr = `plot #${prop.plotNumber}`.toLowerCase();
+      const targetPlotNumOnly = prop.plotNumber.toLowerCase();
+      const poi = (l.propertyOfInterest || '').toLowerCase();
+      return matchProject && (poi.includes(targetPlotStr) || poi.includes(`plot ${targetPlotNumOnly}`) || poi.includes(`#${targetPlotNumOnly}`));
+    });
+  };
 
+  // Status Counts
+  const soldCount = properties.filter((p) => p.status === 'Sold').length;
+  const resCount = properties.filter((p) => p.status === 'Reserved').length;
+  const availCount = properties.filter((p) => p.status === 'Available').length;
+  const visitedLeadsCount = properties.filter((p) => {
+    const lead = getLinkedLead(p);
+    return lead !== undefined;
+  }).length;
+
+  // Filtered properties for the master inventory table
   const filteredProperties = useMemo(() => {
-    return contextFilteredProperties.filter((prop) => {
-      // Search
+    return properties.filter((prop) => {
+      // Project filter
+      if (filterProjectId !== 'all' && prop.projectId !== filterProjectId) {
+        return false;
+      }
+
+      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matchTitle = prop.title.toLowerCase().includes(q);
         const matchPlot = prop.plotNumber.toLowerCase().includes(q);
         const matchAddress = prop.address.toLowerCase().includes(q);
-        if (!matchTitle && !matchPlot && !matchAddress) return false;
+        const matchProject = (prop.projectName || '').toLowerCase().includes(q);
+        const lead = getLinkedLead(prop);
+        const matchLead = lead ? lead.customerName.toLowerCase().includes(q) || lead.phone.includes(q) : false;
+        if (!matchTitle && !matchPlot && !matchAddress && !matchProject && !matchLead) return false;
       }
 
-      // Filter pills
-      if (selectedFilter === 'Land/Plots' && prop.category !== 'Land/Plots') return false;
-      if (selectedFilter === 'Commercial' && prop.category !== 'Commercial') return false;
-      if (selectedFilter === 'Available' && prop.status !== 'Available') return false;
-      if (selectedFilter === 'Sold' && prop.status !== 'Sold') return false;
+      // Categorized status tabs
+      if (activeStatusTab === 'Sold') return prop.status === 'Sold';
+      if (activeStatusTab === 'Reserved') return prop.status === 'Reserved';
+      if (activeStatusTab === 'Available') return prop.status === 'Available';
+      if (activeStatusTab === 'Visited') {
+        const lead = getLinkedLead(prop);
+        return lead !== undefined || prop.status === 'Reserved' || prop.status === 'Sold';
+      }
 
       return true;
     });
-  }, [contextFilteredProperties, searchQuery, selectedFilter]);
+  }, [properties, searchQuery, activeStatusTab, filterProjectId, leads]);
 
-  // Lookup the currently selected property for in-page detail view
+  // Active property for detail view
   const activeProperty = useMemo(() => {
     if (!selectedPropertyId) return null;
     return properties.find((p) => p.id === selectedPropertyId) || null;
   }, [properties, selectedPropertyId]);
-
-  const getStatusBadge = (status: PropertyStatus) => {
-    switch (status) {
-      case 'Available':
-        return 'bg-emerald-50 border border-[#15803D]/30 text-[#15803D] font-bold dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-600';
-      case 'Reserved':
-        return 'bg-amber-50 border border-[#EAB308]/40 text-[#CA8A04] font-bold dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-600';
-      case 'Sold':
-        return 'bg-red-50 border border-red-200 text-[#991B1B] font-bold line-through dark:bg-red-950/40 dark:border-red-900/60 dark:text-red-300';
-    }
-  };
 
   const handleDeleteProperty = (property: Property) => {
     const confirmed = window.confirm(
@@ -93,701 +118,535 @@ export const Properties: React.FC = () => {
     }
   };
 
+  const getStatusBadgeClass = (status: PropertyStatus) => {
+    switch (status) {
+      case 'Available':
+        return 'bg-emerald-50 border border-emerald-500/40 text-[#15803D] dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700';
+      case 'Reserved':
+        return 'bg-amber-50 border border-amber-500/40 text-[#CA8A04] dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700';
+      case 'Sold':
+        return 'bg-red-50 border border-red-500/40 text-[#991B1B] dark:bg-red-950/60 dark:text-red-300 dark:border-red-700';
+    }
+  };
+
   // ─────────────────────────────────────────────────────────────
   // FULL-SCREEN IN-PAGE DETAIL VIEW
   // ─────────────────────────────────────────────────────────────
   if (selectedPropertyId !== null) {
     if (!activeProperty) {
       return (
-        <div className="w-full max-w-full overflow-x-hidden space-y-4">
+        <div className="p-8 text-center bg-white dark:bg-[#0B2516] rounded-2xl border border-slate-200 dark:border-[#1E5D32] shadow-sm max-w-xl mx-auto my-8">
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Property not found or deleted.</p>
           <button
             type="button"
             onClick={() => setSelectedPropertyId(null)}
-            className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-            title="Back"
-            aria-label="Back"
+            className="mt-4 px-4 py-2 bg-[#15803D] text-white rounded-xl text-xs font-bold hover:bg-[#166534] transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-emerald-700 stroke-[2.5]" />
+            Back to Inventory List
           </button>
-          <div className="p-8 sm:p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
-            <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-            <h3 className="text-base font-bold text-slate-900">Property Not Found</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              The property you are looking for may have been deleted or does not exist.
-            </p>
-          </div>
         </div>
       );
     }
 
-    const galleryImages =
-      activeProperty.images && activeProperty.images.length > 0
-        ? activeProperty.images
-        : [
-            'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
-          ];
-
-    const currentImage = galleryImages[activeImageIndex] || galleryImages[0];
-    const contactPhone = settings.contactNumber || '9443275727';
-    const cleanPhone = contactPhone.replace(/[^0-9]/g, '');
-    const waMessage = encodeURIComponent(
-      `Hello ${settings.ownerName || 'Kriyaa Promoters'}, I am interested in inquiring about ${activeProperty.title} (Plot #${activeProperty.plotNumber}, ${activeProperty.areaSqFt} sq.ft). Could you please share more details?`
-    );
+    const linkedLead = getLinkedLead(activeProperty);
 
     return (
-      <div className="w-full max-w-full p-0 sm:p-2 overflow-x-hidden space-y-5 animate-in fade-in duration-200">
-        {/* Top Header Bar */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3 w-full max-w-full">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {/* Back Button */}
+      <div className="w-full space-y-5 animate-in fade-in duration-200">
+        {/* Top Back Navigation Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-[#0B2516] p-4 rounded-2xl border border-slate-200 dark:border-[#1E5D32] shadow-sm">
+          <button
+            type="button"
+            onClick={() => setSelectedPropertyId(null)}
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-[#112F1C] dark:hover:bg-[#164329] transition-all cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Inventory Table</span>
+          </button>
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setSelectedPropertyId(null)}
-              className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition-colors cursor-pointer flex items-center justify-center shrink-0"
-              title="Back"
-              aria-label="Back"
+              onClick={() => openEditPropertyModal(activeProperty)}
+              className="px-3.5 py-2 text-xs font-bold rounded-xl bg-[#15803D] hover:bg-[#166534] text-white flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
-              <ArrowLeft className="w-5 h-5 text-slate-700 stroke-[2.5]" />
+              <Pencil className="w-3.5 h-3.5 text-[#EAB308]" />
+              <span>Edit Plot Specs</span>
             </button>
-
-            {/* Quick Actions (Edit placed cleanly on right, delete kept only at end of page) */}
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button
-                onClick={() => openEditPropertyModal(activeProperty)}
-                className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-              >
-                <Pencil className="w-4 h-4 text-[#CA8A04]" />
-                <span>Edit Property</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Title and Badges Bar */}
-          <div className="pt-2 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-1 rounded-md bg-slate-900 text-white text-xs font-bold uppercase tracking-wider shrink-0">
-                  Plot #{activeProperty.plotNumber}
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold shrink-0">
-                  {activeProperty.category}
-                </span>
-                {activeProperty.isCornerPlot && (
-                  <span className="px-2.5 py-1 rounded-md bg-amber-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
-                    <Sparkles className="w-3 h-3" />
-                    Corner Plot
-                  </span>
-                )}
-                <span
-                  className={`px-3 py-1 rounded-md text-xs font-bold border shrink-0 ${getStatusBadge(
-                    activeProperty.status
-                  )}`}
-                >
-                  {activeProperty.status}
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2 break-words">
-                {activeProperty.title}
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 mt-1 flex-wrap">
-                <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="break-words">{activeProperty.address}</span>
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleDeleteProperty(activeProperty)}
+              className="p-2 text-xs font-bold rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 transition-all cursor-pointer"
+              title="Delete Plot"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* Responsive Two-Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full max-w-full">
-          {/* ─────────────────────────────────────────────────────────────
-              LEFT / PRIMARY COLUMN (High-res gallery, specs, approvals)
-              ───────────────────────────────────────────────────────────── */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-6 w-full max-w-full min-w-0">
-            {/* High-Resolution Image Gallery */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3 w-full max-w-full">
-              {/* Featured Large Image */}
-              <div className="relative h-64 sm:h-80 md:h-[380px] w-full rounded-xl overflow-hidden bg-slate-900">
-                <img
-                  src={currentImage}
-                  alt={activeProperty.title}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover transition-all duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/20 pointer-events-none" />
-
-                {/* Overlaid Badges */}
-                <div className="absolute top-3 left-3 flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur text-white text-xs font-bold">
-                    Plot #{activeProperty.plotNumber}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold">
-                    {activeProperty.facing} Facing
-                  </span>
-                </div>
-
-                <div className="absolute bottom-3 left-3 right-3 text-white">
-                  <p className="text-xs text-slate-200">
-                    Image {activeImageIndex + 1} of {galleryImages.length}
-                  </p>
-                  <p className="text-sm font-semibold truncate drop-shadow">
-                    {activeProperty.title}
-                  </p>
-                </div>
-              </div>
-
-              {/* Selectable Thumbnail Row */}
-              {galleryImages.length > 1 && (
-                <div className="flex items-center gap-2.5 overflow-x-auto pb-1 pt-1 max-w-full">
-                  {galleryImages.map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={`relative w-16 sm:w-20 h-12 sm:h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
-                        activeImageIndex === idx
-                          ? 'border-emerald-600 ring-2 ring-emerald-500/30 scale-105'
-                          : 'border-slate-200 opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <img
-                        src={img}
-                        alt={`Thumbnail ${idx + 1}`}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Comprehensive Property Specifications */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4 w-full max-w-full">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <FileText className="w-5 h-5 text-emerald-600" />
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Property Specifications & Technical Dimensions
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Plot Dimensions
-                  </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                    {activeProperty.plotDimensions}
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Total Extent / Area
-                  </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                    {activeProperty.areaSqFt} sq.ft{' '}
-                    <span className="text-xs text-slate-500 font-normal">
-                      ({activeProperty.areaCents} Cts)
-                    </span>
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Road Width
-                  </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-emerald-700">
-                    {activeProperty.roadWidth}
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Facing Direction
-                  </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1">
-                    <Compass className="w-3.5 h-3.5 text-emerald-600" />
-                    {activeProperty.facing}
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Corner Plot
-                  </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                    {activeProperty.isCornerPlot ? 'Yes (Corner Unit)' : 'Standard Plot'}
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Gated Community
-                  </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                    {activeProperty.isGatedCommunity ? 'Yes (Secured Layout)' : 'Individual Layout'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Description */}
-              {activeProperty.description && (
-                <div className="pt-3 border-t border-slate-100">
-                  <span className="text-[11px] uppercase font-bold text-slate-400 block mb-1">
-                    Layout Overview & Description
-                  </span>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    {activeProperty.description}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Approvals Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4 w-full max-w-full">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Government Approvals & Title Legality
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-emerald-800 block">
-                      DTCP Approval
-                    </span>
-                    <span className="text-xs font-bold text-slate-900">
-                      {settings.dtcpNumber || 'DTCP No. 182/2023'}
-                    </span>
-                    <span className="text-[10px] text-emerald-700 block mt-0.5">Approved & Clear</span>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-emerald-800 block">
-                      RERA Registration
-                    </span>
-                    <span className="text-xs font-bold text-slate-900">
-                      {settings.reraNumber || 'TN/RERA/0428/2024'}
-                    </span>
-                    <span className="text-[10px] text-emerald-700 block mt-0.5">Registered Layout</span>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-emerald-800 block">
-                      Patta Status
-                    </span>
-                    <span className="text-xs font-bold text-slate-900">Subdivided Patta</span>
-                    <span className="text-[10px] text-emerald-700 block mt-0.5">Immediate Transfer</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Badges List */}
-              {activeProperty.approvals && activeProperty.approvals.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap pt-1">
-                  <span className="text-xs font-semibold text-slate-500">Verified Badges:</span>
-                  {activeProperty.approvals.map((appr) => (
-                    <span
-                      key={appr}
-                      className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1 shrink-0"
-                    >
-                      <Check className="w-3 h-3" />
-                      {appr}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ─────────────────────────────────────────────────────────────
-              RIGHT / SIDEBAR COLUMN (Pricing, Location, Contact, Danger Zone)
-              ───────────────────────────────────────────────────────────── */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-6 w-full max-w-full min-w-0">
-            {/* Pricing & Financials Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 w-full max-w-full">
-              <span className="text-[11px] uppercase font-bold text-slate-400 block">
-                Pricing & Valuation Breakdown
-              </span>
-
-              <div className="space-y-1">
-                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tabular-nums">
-                  ₹{(activeProperty.totalPrice / 100000).toFixed(2)} Lakhs
-                </div>
-                <div className="text-xs text-slate-500 font-mono">
-                  Exact: ₹{activeProperty.totalPrice.toLocaleString('en-IN')}
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                <span className="text-xs text-slate-600 font-medium">Unit Rate:</span>
-                <span className="text-sm font-bold text-emerald-700 tabular-nums">
-                  ₹{activeProperty.pricePerSqFt} / sq.ft
+        {/* Plot Details Card */}
+        <div className="bg-white dark:bg-[#0B2516] rounded-3xl border border-slate-200 dark:border-[#1E5D32] p-6 shadow-md space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-[#1E5D32]">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-3 py-1 rounded-full text-xs font-black bg-[#15803D]/10 text-[#15803D] dark:text-emerald-400 border border-[#15803D]/30">
+                  {activeProperty.projectName}
+                </span>
+                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${getStatusBadgeClass(activeProperty.status)}`}>
+                  {activeProperty.status}
                 </span>
               </div>
-
-              {/* Status Selector */}
-              <div className="pt-2 border-t border-slate-100 space-y-2">
-                <label className="text-xs font-bold text-slate-700 block">
-                  Change Property Status:
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Available', 'Reserved', 'Sold'] as PropertyStatus[]).map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => updatePropertyStatus(activeProperty.id, st)}
-                      className={`min-h-[38px] px-2 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        activeProperty.status === st
-                          ? getStatusBadge(st) + ' ring-2 ring-emerald-500/30 font-extrabold shadow-sm'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Location & Map Section */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3.5 w-full max-w-full">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <MapPin className="w-5 h-5 text-emerald-600" />
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Location & Map Details
-                </h2>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                  Full Site Address
-                </span>
-                <p className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed break-words">
-                  {activeProperty.address}
-                </p>
-                {activeProperty.projectName && (
-                  <p className="text-xs text-emerald-700 font-semibold pt-0.5">
-                    Layout: {activeProperty.projectName}
-                  </p>
-                )}
-              </div>
-
-              {/* Google Maps External Link */}
-              <a
-                href={
-                  activeProperty.googleMapsUrl ||
-                  `https://maps.google.com/?q=${encodeURIComponent(activeProperty.address)}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full min-h-[44px] px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <ExternalLink className="w-4 h-4 text-emerald-600" />
-                <span>Open in Google Maps</span>
-              </a>
-            </div>
-
-            {/* Quick Contact Actions Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3.5 w-full max-w-full">
-              <span className="text-[11px] uppercase font-bold text-slate-400 block">
-                Quick Buyer Assistance & Inquiries
-              </span>
-
-              <div className="text-xs text-slate-600">
-                Connect directly with{' '}
-                <strong className="text-slate-900">{settings.ownerName || 'Rajesh RTR'}</strong>{' '}
-                ({settings.companyName || 'Kriyaa Promoters'}):
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <a
-                  href={`tel:${contactPhone}`}
-                  className="min-h-[44px] px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span>Call Now</span>
-                </a>
-
-                <a
-                  href={`https://wa.me/${cleanPhone}?text=${waMessage}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="min-h-[44px] px-3 py-2 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm border border-[#1E5C31]"
-                >
-                  <MessageCircle className="w-4 h-4 text-white" />
-                  <span>WhatsApp</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Danger Zone Action */}
-            <div className="bg-rose-50/60 rounded-2xl border border-rose-200 p-5 shadow-sm space-y-2.5 w-full max-w-full">
-              <span className="text-[11px] uppercase font-bold text-rose-800 block">
-                Danger Zone
-              </span>
-              <p className="text-xs text-slate-600">
-                Permanently delete this property record and all its associated plot specifications.
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-2">
+                Plot #{activeProperty.plotNumber} · {activeProperty.title}
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>{activeProperty.address}</span>
               </p>
-              <button
-                type="button"
-                onClick={() => handleDeleteProperty(activeProperty)}
-                className="w-full min-h-[44px] px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete Property</span>
-              </button>
+            </div>
+
+            <div className="text-left md:text-right">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">Total Investment</span>
+              <span className="text-2xl sm:text-3xl font-black text-[#15803D] dark:text-emerald-400 block">
+                ₹{(activeProperty.totalPrice / 100000).toFixed(2)} Lakhs
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
+                ₹{activeProperty.pricePerSqFt} / sq.ft
+              </span>
             </div>
           </div>
+
+          {/* Key Specs Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C] border border-slate-200 dark:border-[#1E5D32]/60">
+              <span className="text-slate-400 font-bold uppercase text-[10px] block">Dimensions</span>
+              <span className="font-extrabold text-slate-900 dark:text-white text-sm mt-0.5 block">{activeProperty.plotDimensions}</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C] border border-slate-200 dark:border-[#1E5D32]/60">
+              <span className="text-slate-400 font-bold uppercase text-[10px] block">Area Extent</span>
+              <span className="font-extrabold text-slate-900 dark:text-white text-sm mt-0.5 block">
+                {activeProperty.areaSqFt} sq.ft <span className="text-xs font-normal text-slate-500">({activeProperty.areaCents} Cts)</span>
+              </span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C] border border-slate-200 dark:border-[#1E5D32]/60">
+              <span className="text-slate-400 font-bold uppercase text-[10px] block">Facing</span>
+              <span className="font-extrabold text-slate-900 dark:text-white text-sm mt-0.5 block">{activeProperty.facing} Facing</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#112F1C] border border-slate-200 dark:border-[#1E5D32]/60">
+              <span className="text-slate-400 font-bold uppercase text-[10px] block">Road Width</span>
+              <span className="font-extrabold text-slate-900 dark:text-white text-sm mt-0.5 block">{activeProperty.roadWidth}</span>
+            </div>
+          </div>
+
+          {/* Linked Lead / Buyer Section if present */}
+          {linkedLead && (
+            <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-amber-600" />
+                  Linked Buyer / Inquiring Lead
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-white">
+                  {linkedLead.status}
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div>
+                  <p className="font-extrabold text-slate-900 dark:text-white text-sm">{linkedLead.customerName}</p>
+                  <p className="text-slate-600 dark:text-slate-300 font-mono mt-0.5">{linkedLead.phone}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`tel:${linkedLead.phone}`}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 hover:bg-emerald-700"
+                  >
+                    <Phone className="w-3.5 h-3.5" /> Call
+                  </a>
+                  <a
+                    href={`https://wa.me/${linkedLead.phone.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 hover:bg-emerald-800"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Description */}
+          {activeProperty.description && (
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Property Notes</h4>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#112F1C] p-3.5 rounded-xl border border-slate-200 dark:border-[#1E5D32]">
+                {activeProperty.description}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
   // ─────────────────────────────────────────────────────────────
-  // RESPONSIVE ROW CARDS LIST VIEW (When selectedPropertyId === null)
-  // No Wide Tables, Zero Horizontal Scroll
+  // PROPERTIES & MASTER INVENTORY VIEW
   // ─────────────────────────────────────────────────────────────
   return (
-    <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-5">
+    <div className="w-full max-w-full space-y-6 select-none">
       {/* ─────────────────────────────────────────────────────────────
-          1. HEADER & CONTROL BAR
+          1. HEADER & REGISTER NEW PROJECT CTA
           ───────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4 w-full max-w-full">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-emerald-600" />
-              <span>Properties & Plot Inventory</span>
+      <div className="bg-white dark:bg-[#0B2516] rounded-3xl border border-slate-200 dark:border-[#1E5D32] p-5 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-[#15803D]/10 text-[#15803D] dark:text-emerald-400">
+              <Building2 className="w-5 h-5" />
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+              Properties &amp; Plot Inventory
             </h1>
           </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Master inventory records, status management, buyer assignments, and lead inquiries.
+          </p>
         </div>
 
-        {/* Active Context Filter Banner */}
-        {selectedProject && (
-          <div className="p-2.5 px-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-xl flex items-center justify-between gap-2 text-xs flex-wrap">
-            <div className="flex items-center gap-2 min-w-0">
-              <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span className="font-semibold text-emerald-900 dark:text-emerald-200 truncate">
-                Active Layout Filter: <strong>{selectedProject.name}</strong> ({selectedProject.location})
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedProjectId('all')}
-              className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0 cursor-pointer"
-            >
-              Show All Projects
-            </button>
-          </div>
-        )}
+        {/* Top Right Action: Register New Project CTA */}
+        <button
+          type="button"
+          onClick={openNewProjectWizard}
+          className="min-h-[44px] px-5 py-2.5 bg-gradient-to-r from-[#15803D] via-[#166534] to-[#113B24] hover:brightness-110 active:scale-[0.98] text-white text-xs sm:text-sm font-black rounded-xl flex items-center justify-center gap-2 shadow-md border border-[#EAB308]/40 transition-all cursor-pointer whitespace-nowrap"
+        >
+          <Plus className="w-4 h-4 text-[#EAB308]" />
+          <span>+ Register New Project</span>
+        </button>
+      </div>
 
-        {/* Stacked Search & Filter Controls (Row 1: Full-Width Search, Row 2: Filter Pills + Add Property Under Search) */}
-        <div className="flex flex-col gap-3 w-full pt-2 border-t border-slate-100">
-          {/* Row 1: Full-Width Search Input */}
-          <div className="relative w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search by plot number, title, or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full text-xs sm:text-sm pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
+      {/* ─────────────────────────────────────────────────────────────
+          2. PROJECT CARDS (With "Edit Details" - metadata/pricing only)
+          ───────────────────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-[#15803D]" />
+            Registered Projects ({projects.length})
+          </h2>
+          <span className="text-[11px] text-slate-400">Click "Edit Details" to modify metadata and text specs</span>
+        </div>
 
-          {/* Row 2: Status Filter Buttons in Single Horizontal Row + Add Property on the Right */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar flex-nowrap text-xs">
-              {filterPills.map((pill) => (
-                <button
-                  key={pill}
-                  onClick={() => setSelectedFilter(pill)}
-                  className={`min-h-[36px] px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                    selectedFilter === pill
-                      ? 'bg-[#15803D] text-white shadow-sm border border-[#15803D]'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                  }`}
-                >
-                  {pill}
-                </button>
-              ))}
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {projects.map((proj) => {
+            const projPlots = properties.filter((p) => p.projectId === proj.id);
+            const pSold = projPlots.filter((p) => p.status === 'Sold').length;
+            const pRes = projPlots.filter((p) => p.status === 'Reserved').length;
+            const pAvail = projPlots.filter((p) => p.status === 'Available').length;
+            const isFilterActive = filterProjectId === proj.id;
 
-            {/* Add Property Button Positioned Under Search on the Right */}
-            <button
-              type="button"
-              onClick={() => openAddPropertyModal(selectedProject?.id)}
-              className="min-h-[40px] px-4 py-2 bg-[#15803D] hover:bg-[#166534] active:scale-[0.98] text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm border border-[#CA8A04]/40 hover:border-[#EAB308] transition-all cursor-pointer whitespace-nowrap shrink-0 self-stretch sm:self-auto"
-            >
-              <Plus className="w-4 h-4 text-[#EAB308]" />
-              <span>Add Property</span>
-            </button>
-          </div>
+            return (
+              <div
+                key={proj.id}
+                className={`p-4 rounded-2xl border transition-all bg-white dark:bg-[#0B2516] shadow-sm flex flex-col justify-between gap-3 ${
+                  isFilterActive
+                    ? 'border-[#15803D] ring-2 ring-[#15803D]/20 shadow-md'
+                    : 'border-slate-200 dark:border-[#1E5D32] hover:border-slate-300'
+                }`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                        {proj.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span>{proj.location}</span>
+                      </p>
+                    </div>
+
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-[#112F1C] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1E5D32]">
+                      {proj.dtcpNumber || 'DTCP Approved'}
+                    </span>
+                  </div>
+
+                  {/* Stats Pill Row */}
+                  <div className="grid grid-cols-3 gap-1.5 py-2 px-2.5 rounded-xl bg-slate-50 dark:bg-[#112F1C] text-center text-[10px]">
+                    <div>
+                      <span className="text-slate-400 block font-bold">Total</span>
+                      <span className="font-black text-slate-900 dark:text-white text-xs">{projPlots.length}</span>
+                    </div>
+                    <div>
+                      <span className="text-emerald-600 font-bold block">Available</span>
+                      <span className="font-black text-emerald-700 dark:text-emerald-400 text-xs">{pAvail}</span>
+                    </div>
+                    <div>
+                      <span className="text-rose-600 font-bold block">Sold/Hold</span>
+                      <span className="font-black text-rose-700 dark:text-rose-400 text-xs">{pSold + pRes}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Project Card Action Buttons */}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-[#1E5D32]/60">
+                  <button
+                    type="button"
+                    onClick={() => openEditProjectModal(proj)}
+                    className="flex-1 min-h-[36px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#112F1C] dark:hover:bg-[#164329] text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-[#EAB308]" />
+                    <span>Edit Details</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFilterProjectId(isFilterActive ? 'all' : proj.id)}
+                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      isFilterActive
+                        ? 'bg-[#15803D] text-white shadow-sm'
+                        : 'bg-emerald-50 text-[#15803D] hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300'
+                    }`}
+                  >
+                    {isFilterActive ? 'Viewing Plots ✓' : 'Filter Plots'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          2. ZERO-OVERFLOW RESPONSIVE PROPERTY ROW CARDS
-          Replaces multi-column <table> with clean full-width cards
+          3. MASTER INVENTORY & ACTIVITY BREAKDOWN TABLE
           ───────────────────────────────────────────────────────────── */}
-      {filteredProperties.length === 0 ? (
-        <div className="p-8 sm:p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-sm w-full max-w-full">
-          <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <h3 className="text-sm font-bold text-slate-800">No properties found</h3>
-          <p className="text-xs text-slate-500 mt-1">
-            Try adjusting your search criteria or filter pill.
-          </p>
-        </div>
-      ) : (
-        <div className="w-full max-w-full space-y-3">
-          {filteredProperties.map((prop) => (
-            <div
-              key={prop.id}
-              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full p-4 rounded-xl border border-slate-200 bg-white max-w-full shadow-sm hover:shadow transition-shadow"
-            >
-              {/* Left Side: Thumbnail image + Property Details */}
-              <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1 w-full">
-                {/* Thumbnail Image */}
-                <div
-                  onClick={() => {
-                    setSelectedPropertyId(prop.id);
-                    setActiveImageIndex(0);
-                  }}
-                  className="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0 cursor-pointer group relative"
-                  title="Click to view details"
+      <div className="bg-white dark:bg-[#0B2516] rounded-3xl border border-slate-200 dark:border-[#1E5D32] p-5 sm:p-6 shadow-sm space-y-4">
+        {/* Filter Controls Row */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-[#1E5D32]/60">
+          {/* Status Tabs: All, Sold Out, Reserved / Hold, Visited / Inquired, Available */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar flex-nowrap text-xs">
+            {[
+              { id: 'All', label: 'All Plots', count: properties.length },
+              { id: 'Sold', label: 'Sold Out', count: soldCount, color: 'text-rose-600' },
+              { id: 'Reserved', label: 'Reserved / Hold', count: resCount, color: 'text-amber-600' },
+              { id: 'Visited', label: 'Visited / Inquired Leads', count: visitedLeadsCount, color: 'text-purple-600' },
+              { id: 'Available', label: 'Available', count: availCount, color: 'text-emerald-600' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveStatusTab(tab.id as any)}
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeStatusTab === tab.id
+                    ? 'bg-[#15803D] text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-[#112F1C] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#164329]'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    activeStatusTab === tab.id
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}
                 >
-                  <img
-                    src={
-                      prop.images[0] ||
-                      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=80'
-                    }
-                    alt={prop.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
-                  {prop.isCornerPlot && (
-                    <div
-                      className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-white"
-                      title="Corner Plot"
-                    />
-                  )}
-                </div>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
 
-                {/* Info & Metadata Chips */}
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  {/* Property Title & Plot Number (bold, wrap text naturally) */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedPropertyId(prop.id);
-                        setActiveImageIndex(0);
-                      }}
-                      className="font-bold text-slate-900 text-sm hover:text-emerald-700 transition-colors cursor-pointer text-left break-words"
-                    >
-                      {prop.title}
-                    </button>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider shrink-0">
-                      Plot #{prop.plotNumber}
-                    </span>
-                    {prop.isCornerPlot && (
-                      <span className="px-2 py-0.5 rounded bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-0.5 shrink-0">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        Corner
-                      </span>
-                    )}
-                  </div>
+          {/* Search & Project Filter on Right */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            {/* Project Filter Select */}
+            <select
+              value={filterProjectId}
+              onChange={(e) => setFilterProjectId(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#112F1C] border border-slate-200 dark:border-[#1E5D32] text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="all">All Projects ({projects.length})</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
 
-                  {/* Location/Address with MapPin icon */}
-                  <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span className="break-words line-clamp-1">{prop.address}</span>
-                  </div>
-
-                  {/* Key Specs as inline chips/pills (Dimensions, Category, Road width, Facing) */}
-                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5 text-[11px]">
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold shrink-0">
-                      {prop.category}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono shrink-0">
-                      {prop.plotDimensions}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 shrink-0">
-                      {prop.areaSqFt} sq.ft ({prop.areaCents} Cts)
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 shrink-0">
-                      {prop.roadWidth} Road
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 shrink-0">
-                      {prop.facing} Facing
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side: Price, Status dropdown, Action buttons */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                {/* Price */}
-                <div className="text-left sm:text-right shrink-0">
-                  <div className="text-base font-extrabold text-slate-900 whitespace-nowrap">
-                    ₹{(prop.totalPrice / 100000).toFixed(2)}L
-                  </div>
-                  <div className="text-[11px] text-slate-500 whitespace-nowrap">
-                    ₹{prop.pricePerSqFt}/sq.ft
-                  </div>
-                </div>
-
-                {/* Status pill with quick-toggle dropdown */}
-                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <select
-                    value={prop.status}
-                    onChange={(e) => updatePropertyStatus(prop.id, e.target.value as PropertyStatus)}
-                    className={`text-[11px] font-bold px-2.5 py-1.5 rounded-lg border shadow-sm cursor-pointer focus:outline-none whitespace-nowrap ${getStatusBadge(
-                      prop.status
-                    )}`}
-                  >
-                    <option value="Available">Available</option>
-                    <option value="Reserved">Reserved</option>
-                    <option value="Sold">Sold</option>
-                  </select>
-                </div>
-
-                {/* Action buttons: "View" button and "Edit" icon */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => {
-                      setSelectedPropertyId(prop.id);
-                      setActiveImageIndex(0);
-                    }}
-                    className="min-h-[36px] px-3 bg-[#15803D] hover:bg-[#166534] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap border border-[#1E5C31]"
-                    title="View More Details"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-white" />
-                    <span>View</span>
-                  </button>
-
-                  <button
-                    onClick={() => openEditPropertyModal(prop)}
-                    className="min-h-[36px] px-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer"
-                    title="Edit Property"
-                  >
-                    <Pencil className="w-3.5 h-3.5 text-slate-500" />
-                  </button>
-                </div>
-              </div>
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search plot #, buyer, area..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 dark:bg-[#112F1C] border border-slate-200 dark:border-[#1E5D32] rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
             </div>
-          ))}
+          </div>
         </div>
-      )}
+
+        {/* Master Inventory Table */}
+        {filteredProperties.length === 0 ? (
+          <div className="p-12 text-center bg-slate-50 dark:bg-[#112F1C]/40 rounded-2xl border border-slate-200 dark:border-[#1E5D32]">
+            <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No plots found</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              No plot records match the selected status tab or search filter.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-[#1E5D32]">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-[#113B24] text-white uppercase text-[10px] font-mono tracking-wider">
+                <tr>
+                  <th className="py-3 px-4">Project &amp; Plot #</th>
+                  <th className="py-3 px-4">Dimensions &amp; Area</th>
+                  <th className="py-3 px-4">Facing &amp; Road</th>
+                  <th className="py-3 px-4">Price</th>
+                  <th className="py-3 px-4">Buyer / Inquirer Contact</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-[#1E5D32] bg-white dark:bg-[#0B2516]">
+                {filteredProperties.map((prop) => {
+                  const linkedLead = getLinkedLead(prop);
+
+                  return (
+                    <tr
+                      key={prop.id}
+                      className="hover:bg-slate-50/80 dark:hover:bg-[#112F1C]/60 transition-colors"
+                    >
+                      {/* 1. Project & Plot # */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="w-8 h-8 rounded-lg bg-emerald-100 text-[#15803D] dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center font-black text-xs shrink-0">
+                            #{prop.plotNumber}
+                          </span>
+                          <div>
+                            <span className="font-extrabold text-slate-900 dark:text-white block text-xs">
+                              {prop.title}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block font-medium">
+                              {prop.projectName}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 2. Dimensions & Area */}
+                      <td className="py-3 px-4">
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 block">
+                          {prop.plotDimensions}
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                          {prop.areaSqFt} sq.ft ({prop.areaCents} Cts)
+                        </span>
+                      </td>
+
+                      {/* 3. Facing & Road */}
+                      <td className="py-3 px-4">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                          {prop.facing} Facing
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">{prop.roadWidth}</span>
+                      </td>
+
+                      {/* 4. Price */}
+                      <td className="py-3 px-4">
+                        <span className="font-black text-[#15803D] dark:text-emerald-400 block">
+                          ₹{(prop.totalPrice / 100000).toFixed(2)} Lakhs
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">₹{prop.pricePerSqFt}/sq.ft</span>
+                      </td>
+
+                      {/* 5. Buyer / Inquirer Contact */}
+                      <td className="py-3 px-4">
+                        {linkedLead ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-extrabold text-slate-900 dark:text-white block text-xs">
+                                {linkedLead.customerName}
+                              </span>
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                                {linkedLead.status}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-500 font-mono">{linkedLead.phone}</span>
+                              <a
+                                href={`tel:${linkedLead.phone}`}
+                                title="Call Buyer"
+                                className="p-1 rounded bg-slate-100 hover:bg-emerald-100 text-slate-600 hover:text-emerald-700"
+                              >
+                                <Phone className="w-3 h-3" />
+                              </a>
+                              <a
+                                href={`https://wa.me/${linkedLead.phone.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="WhatsApp Buyer"
+                                className="p-1 rounded bg-slate-100 hover:bg-emerald-100 text-slate-600 hover:text-emerald-700"
+                              >
+                                <MessageCircle className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-[11px] italic">No buyer assigned</span>
+                        )}
+                      </td>
+
+                      {/* 6. Status with Direct Live Toggle */}
+                      <td className="py-3 px-4">
+                        <select
+                          value={prop.status}
+                          onChange={(e) => updatePropertyStatus(prop.id, e.target.value as PropertyStatus)}
+                          className={`px-2.5 py-1 rounded-xl text-[11px] font-black border cursor-pointer focus:outline-none ${getStatusBadgeClass(
+                            prop.status
+                          )}`}
+                        >
+                          <option value="Available">Available</option>
+                          <option value="Reserved">Reserved</option>
+                          <option value="Sold">Sold</option>
+                        </select>
+                      </td>
+
+                      {/* 7. Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPropertyId(prop.id)}
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-[#112F1C] dark:hover:bg-[#164329] dark:text-slate-200 cursor-pointer"
+                            title="View Plot Details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditPropertyModal(prop)}
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:hover:bg-emerald-900 dark:text-emerald-300 cursor-pointer"
+                            title="Edit Plot Specifications"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteProperty(prop)}
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950 dark:hover:bg-rose-900 dark:text-rose-300 cursor-pointer"
+                            title="Delete Plot Record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
